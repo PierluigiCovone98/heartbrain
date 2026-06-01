@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heartbrain"
+version = "0.1.0"
+description = "A coupled heart-brain dynamical system: a self-sustained oscillator (Van der Pol) coupled to a recurrent neural network."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
+
+[project.optional-dependencies]
+experiments = ["matplotlib"]
+dev = ["pytest"]
+
+# Layout src/: i package vivono sotto src/, non nella radice.
+# setuptools li cerca li' invece che nella root del repo.
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -15,7 +15,7 @@ dependencies = [
 experiments = ["matplotlib"]
 dev = ["pytest"]
 
-# Layout src/: i package vivono sotto src/, non nella radice.
-# setuptools li cerca li' invece che nella root del repo.
+# Layout src/: packages live under src/, not in the root directory.
+# "setuptools" look for them there instead of the repo root directory.
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -16,7 +16,7 @@ type Differentiator = Callable[ [float, float], VelocityVector]
 
 def rk4_step(diff : Differentiator, x : float, y : float, dt : float) -> HeartState:
     """Advance one Runge-Kutta 4 step of size ``dt``.
-    -----
+    
     RK4 samples the field four times across the step and combines them in
     a weighted average. The two midpoint samples are weighted double
     because they best approximate the average velocity over the interval.

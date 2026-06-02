@@ -3,7 +3,7 @@
 from collections.abc import Callable
 
 
-'''Aliases for complex type signatures'''
+# Aliases for complex type signatures
 type HeartState = tuple[float, float]           # HeartState == (x,y)
 type VelocityVector = tuple[float, float]       # VelocityVector == (dx/dt, dy/dt)      
 

@@ -10,7 +10,7 @@ class Heart:
     
     The state is a pair ``(x,y)`` that evolves according to:
 
-        dx/dy = y
+        dx/dt = y
         dy/dt = mu * (1-x^2) * y - x + (k_bh * sigma)
         
     Here:

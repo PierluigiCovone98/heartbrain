@@ -1,7 +1,4 @@
-"""Tests for the Heart module.
-
-Run with: pytest tests/ -v
-"""
+"""Tests for the Heart module."""
 import numpy as np
 import pytest
 

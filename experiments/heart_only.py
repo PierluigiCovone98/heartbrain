@@ -1,10 +1,8 @@
-"""heart_only -- run the autonomous Heart and visualize its dynamics.
+"""Run the autonomous Heart module and visualize its dynamics.
 
 Produces two figures in output/:
   * the phase portrait: convergence to the limit cycle from several starts;
   * the time series x(t): the warm-up settling onto the cycle.
-
-Run with: python experiments/heart_only.py
 """
 import os
 

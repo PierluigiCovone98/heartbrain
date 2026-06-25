@@ -24,6 +24,9 @@ HIDDEN_SIZE = 4
 
 SEED = 42
 
+N_STEPS = 50
+
+
 def main(): 
     """First experiment on the Vanilla RNN: [...]."""
    
@@ -39,10 +42,19 @@ def main():
     params = brain.init_params(input_size=INPUT_SIZE, hidden_size=HIDDEN_SIZE, rng=rng)
 
     # Experiment
-    h_prime = brain.cell_forward(x, h, params)
+    states = [h]
+    for _ in range(1,N_STEPS):
+        h_prime = brain.cell_forward(x, h, params)
+        states.append(h_prime)
+        h = h_prime
 
     # Log 
-    print(f"{h_prime=}")
+    for t, h in enumerate(states):
+        if t == 0:
+            print(f"t={t:3d}   h = [{', '.join(f'{x:+.4f}' for x in h)}]   |dh| = -")
+        else:
+            distance = np.linalg.norm(h - states[t-1])
+            print(f"t={t:3d}   h = [{', '.join(f'{x:+.4f}' for x in h)}]   |dh| = {distance:.6f}")
 
 
 if __name__ == '__main__':

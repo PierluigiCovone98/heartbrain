@@ -33,15 +33,15 @@ class VanillaRNNParams:
     b_h: np.ndarray
 
 
-def init_params(input_size: int, output_size: int, rng: np.random.Generator) -> VanillaRNNParams:
+def init_params(input_size: int, hidden_size: int, rng: np.random.Generator) -> VanillaRNNParams:
     """Random scaled initialization for Vanilla RNN parameters.
     
-    ``output_size`` is the ``hidden_size`` of the (hidden) state space.
+    ``hidden_size`` is the size of the (hidden) state space.
     """
     return VanillaRNNParams(
-        W_xh= rng.normal( size = (output_size, input_size), scale = _weight_std(input_size) ),
-        W_hh= rng.normal( size = (output_size, output_size), scale = _weight_std(output_size) ),
-        b_h= rng.normal( size=output_size )
+        W_xh= rng.normal( size = (hidden_size, input_size), scale = _weight_std(input_size) ),
+        W_hh= rng.normal( size = (hidden_size, hidden_size), scale = _weight_std(hidden_size) ),
+        b_h= rng.normal( size = hidden_size )
     )
 
 
@@ -52,7 +52,7 @@ def init_h0(hidden_size: int) -> np.ndarray:
     in the future we will abstract this convention simply by introducing a bool
     parameter ``convention``.  
     """
-    return np.zeros(hidden_size)
+    return np.zeros(hidden_size, dtype= np.float64)
 
 
 def cell_forward(x: np.ndarray, h: np.ndarray, params: VanillaRNNParams) -> np.ndarray:
@@ -84,5 +84,5 @@ def cell_forward(x: np.ndarray, h: np.ndarray, params: VanillaRNNParams) -> np.n
 
 # === Utility Functions ===
 def _weight_std(input_size: int) -> float:
-    """Inversely propotional scale of weights sdt. w.r.t. input dimension of the layer."""
+    """Inversely propotional scale of weights standard deviation. w.r.t. input dimension of the layer."""
     return 1 / np.sqrt(input_size)

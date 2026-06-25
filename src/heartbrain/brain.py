@@ -10,7 +10,7 @@ We follow the mathematical convention ``W @ x``:
 
 This differs from the "batch-first" convention ``x @ W`` common in
 deep learning code. Here we use ``W @ x`` because it aligns with
-the dynamical-systems literature ...
+the dynamical-systems literature .
 """
 from dataclasses import dataclass
 
@@ -30,13 +30,13 @@ class VanillaRNNParams:
     """
     W_xh: np.ndarray
     W_hh: np.ndarray
-    b_h: np.ndarray     # One bias-per-neuron 
+    b_h: np.ndarray
 
 
 def cell_forward(x: np.ndarray, h: np.ndarray, params: VanillaRNNParams) -> np.ndarray:
     """Implements the state transition function of the Vanilla RNN, such that:
     
-            h' = tanh( W_xh * x + W_hh * h + b_h)
+            h' = tanh( W_xh @ x + W_hh @ h + b_h)
         
         where:
             -   ``h'`` is the hidden state at the current time ``t``;

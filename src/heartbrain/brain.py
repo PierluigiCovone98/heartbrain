@@ -33,6 +33,28 @@ class VanillaRNNParams:
     b_h: np.ndarray
 
 
+def init_params(input_size: int, output_size: int, rng: np.random.Generator) -> VanillaRNNParams:
+    """Random scaled initialization for Vanilla RNN parameters.
+    
+    ``output_size`` is the ``hidden_size`` of the (hidden) state space.
+    """
+    return VanillaRNNParams(
+        W_xh= rng.normal( size = (output_size, input_size), scale = _weight_std(input_size) ),
+        W_hh= rng.normal( size = (output_size, output_size), scale = _weight_std(output_size) ),
+        b_h= rng.normal( size=output_size )
+    )
+
+
+def init_h0(hidden_size: int) -> np.ndarray:
+    """Initialzie the first state ``h0`` of dimension (hidden_size,).
+
+    Now ``h0`` is initialized as a vector of zeros (following the convention);
+    in the future we will abstract this convention simply by introducing a bool
+    parameter ``convention``.  
+    """
+    return np.zeros(hidden_size)
+
+
 def cell_forward(x: np.ndarray, h: np.ndarray, params: VanillaRNNParams) -> np.ndarray:
     """Implements the state transition function of the Vanilla RNN, such that:
     
@@ -58,3 +80,9 @@ def cell_forward(x: np.ndarray, h: np.ndarray, params: VanillaRNNParams) -> np.n
     h_contribution = params.W_hh @ h
 
     return np.tanh( x_contribution + h_contribution + params.b_h)
+
+
+# === Utility Functions ===
+def _weight_std(input_size: int) -> float:
+    """Inversely propotional scale of weights sdt. w.r.t. input dimension of the layer."""
+    return 1 / np.sqrt(input_size)

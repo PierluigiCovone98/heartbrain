@@ -42,18 +42,17 @@ def main():
     params = brain.init_params(input_size=INPUT_SIZE, hidden_size=HIDDEN_SIZE, rng=rng)
 
     # Experiment
-    states = [h]
+    trajectory = [h]
     for _ in range(1,N_STEPS):
-        h_prime = brain.cell_forward(x, h, params)
-        states.append(h_prime)
-        h = h_prime
+        h = brain.cell_forward(x, h, params)
+        trajectory.append(h)
 
     # Log 
-    for t, h in enumerate(states):
+    for t, h in enumerate(trajectory):
         if t == 0:
             print(f"t={t:3d}   h = [{', '.join(f'{x:+.4f}' for x in h)}]   |dh| = -")
         else:
-            distance = np.linalg.norm(h - states[t-1])
+            distance = np.linalg.norm(h - trajectory[t-1])
             print(f"t={t:3d}   h = [{', '.join(f'{x:+.4f}' for x in h)}]   |dh| = {distance:.6f}")
 
 

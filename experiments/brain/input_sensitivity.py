@@ -32,20 +32,15 @@ def main():
 
     # Inputs
     inputs_trajectories = []
+    
     for i in range(N_INPUTS):
-        x = inputs[i]
-        trajectory = []
-
         # The first state "h0" is a vector of zeros by convention.
         h = brain.init_h0(HIDDEN_SIZE)
-        trajectory.append(h)
-
-        for _ in range(1,N_STEPS):
-            h_prime = brain.cell_forward(x, h, params)
-            trajectory.append(h_prime)
-            h = h_prime
         
-        inputs_trajectories.append( (x, trajectory) )
+        x = inputs[i]
+        trajectory = _run_single_experiment(x, params, h, N_STEPS)
+        
+        inputs_trajectories.append( (x,trajectory))
 
     # Logs
     for i, (x, trajectory) in enumerate(inputs_trajectories):
@@ -54,6 +49,17 @@ def main():
     _print_summary(inputs_trajectories)
 
 
+def _run_single_experiment(x: np.ndarray, params: brain.VanillaRNNParams, h_0: np.ndarray, n_steps: int) -> list[np.ndarray]:
+    """Run the cell from ``h_0`` for ``n_steps`` with fixed ``x``. Returns the trajectory."""
+    trajectory = [h_0]
+    h = h_0
+    for _ in range(1, n_steps):
+        h = brain.cell_forward(x, h, params)
+        trajectory.append(h)
+    return trajectory
+
+
+# === Log Functions ===
 def _print_trajectory(index: int, total: int, x: np.ndarray, trajectory: list[np.ndarray]) -> None:
     """Print one experiment's trajectory with a header line."""
     print(f"\n==== Experiment {index+1}/{total} — x = {np.array2string(x, precision=4)} ====")

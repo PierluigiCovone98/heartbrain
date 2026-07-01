@@ -81,7 +81,7 @@ def main():
     for i, (g, trajectory) in enumerate(g_trajectories):
         _print_trajectory(i, len(g_trajectories), g, trajectory)
 
-        _print_summary(x, g_trajectories)
+    _print_summary(x, g_trajectories)
 
  
 

@@ -11,7 +11,7 @@ We fix the following parameters:
 We define a base weight matrix W_base for the recurrent connection, generated 
 as a standard scaled initialization with 
         sigma_base = 1 / sqrt(hidden_size=N). 
-This corresponds to the case g = 1 (i.e., no rescaling)."mension value.
+This corresponds to the case g = 1 (i.e., no rescaling).
 
 Then, for each value of g in the sweep, we scale the W_base matrix by a factor 
 of g and run the cell for N_STEPS steps. For example, when g = 1.25: 
@@ -23,6 +23,9 @@ Results are stored in a list of (g, trajectory) tuples and then logged.
 import numpy as np
 
 from heartbrain import brain
+from heartbrain.infra.experiment_logger import ExperimentLogger
+
+from typing import TextIO
 
 
 # Constants
@@ -77,12 +80,28 @@ def main():
         trajectory = _run_single_experiment(x=x,params=new_params, h_0=h0, n_steps=N_STEPS)
         g_trajectories.append( (g, trajectory) )
 
-    # Logs
-    _print_header()
-    _print_summary(g_trajectories)
+ 
+    # === Set ups experiment logger ===
+    logger = ExperimentLogger(
+        experiment_type="gain_sweep",
+        parameters={ 
+            "SEED": SEED, 
+            "N": N,
+            "G_MIN": G_MIN,
+            "G_MAX" : G_MAX,
+            "NUM_G": NUM_G,
+            "N_STEPS": N_STEPS
+            },
+        component="brain"
+    )
 
-    for i, (g, trajectory) in enumerate(g_trajectories):
-        _print_trajectory(i, len(g_trajectories), g, trajectory)
+    # Logs
+
+    with logger.open() as log:
+        _print_header(file=log)
+        _print_summary(g_trajectories, file=log)
+        for i, (g, trajectory) in enumerate(g_trajectories):
+            _print_trajectory(i, len(g_trajectories), g, trajectory, file=log)
 
 
 def _run_single_experiment(x: np.ndarray, params: brain.VanillaRNNParams, h_0: np.ndarray, n_steps: int) -> list[np.ndarray]:
@@ -98,39 +117,39 @@ def _run_single_experiment(x: np.ndarray, params: brain.VanillaRNNParams, h_0: n
 
 
 # === Log functions ===
-def _print_header() -> None:
+def _print_header(file: TextIO | None = None) -> None:
     """Print experiment parameters."""
-    print("==== Experiment parameters ====")
-    print(f"N        = {N}")
-    print(f"N_STEPS  = {N_STEPS}")
-    print(f"G_MIN    = {G_MIN}")
-    print(f"G_MAX    = {G_MAX}")
-    print(f"NUM_G    = {NUM_G}")
-    print(f"SEED     = {SEED}")
+    print("==== Experiment parameters ====", file=file)
+    print(f"N        = {N}", file=file)
+    print(f"N_STEPS  = {N_STEPS}", file=file)
+    print(f"G_MIN    = {G_MIN}", file=file)
+    print(f"G_MAX    = {G_MAX}", file=file)
+    print(f"NUM_G    = {NUM_G}", file=file)
+    print(f"SEED     = {SEED}", file=file)
 
 
-def _print_summary(g_trajectories: list[tuple[float, list[np.ndarray]]]) -> None:
+def _print_summary(g_trajectories: list[tuple[float, list[np.ndarray]]], file: TextIO | None = None) -> None:
     """Print the summary of all runs: (g, final state, last |dh|, convergence status)."""
-    print("\n==== Summary ====")
+    print("\n==== Summary ====", file=file)
     for g, trajectory in g_trajectories:
         h_final = trajectory[-1]
         last_dh = np.linalg.norm(trajectory[-1] - trajectory[-2])
         converged = last_dh < 1e-4
         status = "converged" if converged else "NOT converged"
         h_str = np.array2string(h_final, precision=4)
-        print(f"g = {g:.4f}   h_final = {h_str}   last |dh| = {last_dh:.6f}   [{status}]")
+        print(f"g = {g:.4f}   h_final = {h_str}   last |dh| = {last_dh:.6f}   [{status}]", file=file)
 
 
-def _print_trajectory(index: int, total: int, g: float, trajectory: list[np.ndarray]) -> None:
+def _print_trajectory(index: int, total: int, g: float, trajectory: list[np.ndarray], file: TextIO | None = None) -> None:
     """Print one experiment's trajectory with a header line."""
-    print(f"\n==== Experiment {index+1}/{total} — g = {g:.4f} ====")
+    print(f"\n==== Experiment {index+1}/{total} — g = {g:.4f} ====", file=file)
     for t, h in enumerate(trajectory):
         h_str = ", ".join(f"{hi:+.4f}" for hi in h)
         if t == 0:
             distance_str = "-"
         else:
             distance_str = f"{np.linalg.norm(h - trajectory[t-1]):.6f}"
-        print(f"t={t:3d}   h = [{h_str}]   |dh| = {distance_str}")
+        print(f"t={t:3d}   h = [{h_str}]   |dh| = {distance_str}", file=file)
 
 
 if __name__ == '__main__':

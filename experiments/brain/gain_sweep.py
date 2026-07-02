@@ -10,7 +10,7 @@ We fix the following parameters:
 
 We define a base weight matrix W_base for the recurrent connection, generated 
 as a standard scaled initialization with 
-        sigma_base = 1 / sqrt(hidden_size). 
+        sigma_base = 1 / sqrt(hidden_size=N). 
 This corresponds to the case g = 1 (i.e., no rescaling)."mension value.
 
 Then, for each value of g in the sweep, we scale the W_base matrix by a factor 
@@ -26,11 +26,11 @@ from heartbrain import brain
 
 
 # Constants
-SEED = 45
+SEED = 42
 
 INPUT_SIZE = 3
-HIDDEN_SIZE = 4
-
+N = 4
+            
 G_MAX = 2.5
 G_MIN = 0.5
 NUM_G = 9
@@ -47,15 +47,15 @@ def main():
 
     # === Set up invariants ===
     x = rng.normal(size=INPUT_SIZE)
-    h0 = brain.init_h0(hidden_size=HIDDEN_SIZE)
+    h0 = brain.init_h0(hidden_size=N)
 
     # W_xh and W_hh are both initialized with normal-scaled weights,
     # where the standard deviation is
     #       sigma =  1/sqrt(fan_in).
     # 
-    # Here fan_in = INPUT_SIZE for W_xh, and fan_in = HIDDEN_SIZE for W_hh.
+    # Here fan_in = INPUT_SIZE for W_xh, and fan_in = N for W_hh.
     params = brain.init_params(input_size=INPUT_SIZE,
-                                hidden_size=HIDDEN_SIZE, 
+                                hidden_size=N, 
                                 rng=rng)
 
     # ``W_hh`` is our ``W_base`` (just to be clear).
@@ -78,12 +78,11 @@ def main():
         g_trajectories.append( (g, trajectory) )
 
     # Logs
+    _print_header()
+    _print_summary(g_trajectories)
+
     for i, (g, trajectory) in enumerate(g_trajectories):
         _print_trajectory(i, len(g_trajectories), g, trajectory)
-
-    _print_summary(x, g_trajectories)
-
- 
 
 
 def _run_single_experiment(x: np.ndarray, params: brain.VanillaRNNParams, h_0: np.ndarray, n_steps: int) -> list[np.ndarray]:
@@ -99,6 +98,29 @@ def _run_single_experiment(x: np.ndarray, params: brain.VanillaRNNParams, h_0: n
 
 
 # === Log functions ===
+def _print_header() -> None:
+    """Print experiment parameters."""
+    print("==== Experiment parameters ====")
+    print(f"N        = {N}")
+    print(f"N_STEPS  = {N_STEPS}")
+    print(f"G_MIN    = {G_MIN}")
+    print(f"G_MAX    = {G_MAX}")
+    print(f"NUM_G    = {NUM_G}")
+    print(f"SEED     = {SEED}")
+
+
+def _print_summary(g_trajectories: list[tuple[float, list[np.ndarray]]]) -> None:
+    """Print the summary of all runs: (g, final state, last |dh|, convergence status)."""
+    print("\n==== Summary ====")
+    for g, trajectory in g_trajectories:
+        h_final = trajectory[-1]
+        last_dh = np.linalg.norm(trajectory[-1] - trajectory[-2])
+        converged = last_dh < 1e-4
+        status = "converged" if converged else "NOT converged"
+        h_str = np.array2string(h_final, precision=4)
+        print(f"g = {g:.4f}   h_final = {h_str}   last |dh| = {last_dh:.6f}   [{status}]")
+
+
 def _print_trajectory(index: int, total: int, g: float, trajectory: list[np.ndarray]) -> None:
     """Print one experiment's trajectory with a header line."""
     print(f"\n==== Experiment {index+1}/{total} — g = {g:.4f} ====")
@@ -109,18 +131,6 @@ def _print_trajectory(index: int, total: int, g: float, trajectory: list[np.ndar
         else:
             distance_str = f"{np.linalg.norm(h - trajectory[t-1]):.6f}"
         print(f"t={t:3d}   h = [{h_str}]   |dh| = {distance_str}")
-
-
-def _print_summary(x: np.ndarray, g_trajectories: list[tuple[float, list[np.ndarray]]]) -> None:
-    """Print a compact summary mapping each g to its final hidden state and convergence status."""
-    print(f"\n==== Summary (fixed x = {np.array2string(x, precision=4)}) ====")
-    for g, trajectory in g_trajectories:
-        h_final = trajectory[-1]
-        last_dh = np.linalg.norm(trajectory[-1] - trajectory[-2])
-        converged = last_dh < 1e-4
-        status = "converged" if converged else "NOT converged"
-        h_str = np.array2string(h_final, precision=4)
-        print(f"g = {g:.4f}   h_final = {h_str}   last |dh| = {last_dh:.6f}   [{status}]")
 
 
 if __name__ == '__main__':

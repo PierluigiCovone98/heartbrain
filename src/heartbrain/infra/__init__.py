@@ -1,1 +1,1 @@
-# empty
+"""Infrastructure utilities: logging, tracking, and other non-domain concerns."""

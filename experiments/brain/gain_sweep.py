@@ -32,16 +32,16 @@ from typing import TextIO
 SEED = 42
 
 INPUT_SIZE = 3
-N = 4
+N = 64
             
 G_MAX = 2.5
 G_MIN = 0.5
-NUM_G = 9
+NUM_G = 15
 
 # Notice:
 #   When the system starts to have a chaoitic dynamics
 #   it is important to study the trajectory for many steps.
-N_STEPS = 100
+N_STEPS = 200
 
 
 def main():

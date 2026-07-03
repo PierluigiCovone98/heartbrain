@@ -43,6 +43,10 @@ NUM_G = 15
 #   it is important to study the trajectory for many steps.
 N_STEPS = 200
 
+# Period detection
+PERIOD_EPSILON = 1e-4       # threshold for "same state"
+WARMUP_STEPS = 50           # steps to skip before checking period
+
 
 def main():
     
@@ -96,12 +100,12 @@ def main():
     )
 
     # Logs
-
     with logger.open() as log:
         _print_header(file=log)
         _print_summary(g_trajectories, file=log)
-        for i, (g, trajectory) in enumerate(g_trajectories):
-            _print_trajectory(i, len(g_trajectories), g, trajectory, file=log)
+        # # Detailed trajectories disabled for readability with N=64.
+        # for i, (g, trajectory) in enumerate(g_trajectories):
+        #     _print_trajectory(i, len(g_trajectories), g, trajectory, file=log)
 
 
 def _run_single_experiment(x: np.ndarray, params: brain.VanillaRNNParams, h_0: np.ndarray, n_steps: int) -> list[np.ndarray]:
@@ -128,16 +132,21 @@ def _print_header(file: TextIO | None = None) -> None:
     print(f"SEED     = {SEED}", file=file)
 
 
-def _print_summary(g_trajectories: list[tuple[float, list[np.ndarray]]], file: TextIO | None = None) -> None:
-    """Print the summary of all runs: (g, final state, last |dh|, convergence status)."""
+def _print_summary(g_trajectories: list[tuple[float, list[np.ndarray]]],
+                   file: TextIO | None = None) -> None:
+    """Print summary: (g, period, convergence status, last |dh|)."""
     print("\n==== Summary ====", file=file)
     for g, trajectory in g_trajectories:
-        h_final = trajectory[-1]
         last_dh = np.linalg.norm(trajectory[-1] - trajectory[-2])
-        converged = last_dh < 1e-4
-        status = "converged" if converged else "NOT converged"
-        h_str = np.array2string(h_final, precision=4)
-        print(f"g = {g:.4f}   h_final = {h_str}   last |dh| = {last_dh:.6f}   [{status}]", file=file)
+        converged = last_dh < PERIOD_EPSILON
+        conv_status = "converged" if converged else "NOT converged"
+        
+        period = _detect_period(trajectory)
+        period_str = str(period) if period is not None else "?"
+        
+        print(f"g = {g:.4f}   period = {period_str:>3s}   "
+              f"[{conv_status}]   last |dh| = {last_dh:.6f}",
+              file=file)
 
 
 def _print_trajectory(index: int, total: int, g: float, trajectory: list[np.ndarray], file: TextIO | None = None) -> None:
@@ -150,6 +159,38 @@ def _print_trajectory(index: int, total: int, g: float, trajectory: list[np.ndar
         else:
             distance_str = f"{np.linalg.norm(h - trajectory[t-1]):.6f}"
         print(f"t={t:3d}   h = [{h_str}]   |dh| = {distance_str}", file=file)
+
+
+# === Period Detection ===
+def _detect_period(trajectory: list[np.ndarray]) -> int | None:
+    """Detect the period of the cycle at the end of the trajectory.
+    
+    For each candidate ``k``, verifies that all ``k`` components of the last
+    period match the corresponding components of the second-to-last period,
+    AND that the second-to-last period matches the third-to-last period.
+    Requiring three consecutive periods to match makes the detection robust
+    against sporadic coincidences.
+    
+    Returns the smallest matching ``k``, or None if no period is found within
+    the available range.
+    """
+    usable_length = len(trajectory) - WARMUP_STEPS
+    k_max = usable_length // 3
+    
+    for k in range(1, k_max + 1):
+        all_match = True
+        for j in range(k):
+            # Compare last period with second-to-last period at position j.
+            if np.linalg.norm(trajectory[-1 - j] - trajectory[-1 - j - k]) > PERIOD_EPSILON:
+                all_match = False
+                break
+            # Compare second-to-last period with third-to-last period at position j.
+            if np.linalg.norm(trajectory[-1 - j - k] - trajectory[-1 - j - 2*k]) > PERIOD_EPSILON:
+                all_match = False
+                break
+        if all_match:
+            return k
+    return None
 
 
 if __name__ == '__main__':

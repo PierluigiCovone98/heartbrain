@@ -34,14 +34,14 @@ SEED = 42
 INPUT_SIZE = 3
 N = 64
             
-G_MAX = 1.8
-G_MIN = 1.6
-NUM_G = 21  # 0.1
+G_MIN = 2.04
+G_MAX = 2.14
+NUM_G = 25  # step of 0.005
 
 # Notice:
 #   When the system starts to have a chaoitic dynamics
 #   it is important to study the trajectory for many steps.
-N_STEPS = 200
+N_STEPS = 1000
 
 # Period detection
 PERIOD_EPSILON = 1e-4       # threshold for "same state"

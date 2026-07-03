@@ -34,9 +34,9 @@ SEED = 42
 INPUT_SIZE = 3
 N = 64
             
-G_MAX = 2.5
-G_MIN = 0.5
-NUM_G = 15
+G_MAX = 1.8
+G_MIN = 1.6
+NUM_G = 21  # 0.1
 
 # Notice:
 #   When the system starts to have a chaoitic dynamics

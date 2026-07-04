@@ -82,6 +82,119 @@ def cell_forward(x: np.ndarray, h: np.ndarray, params: VanillaRNNParams) -> np.n
     return np.tanh( x_contribution + h_contribution + params.b_h)
 
 
+class VanillaRNN:
+    """A Vanilla Recurrent Neural Network as a dynamical system.
+
+    The network is characterized by its hidden state ``h``, which evolves
+    in time according to the recurrence:
+
+        h_{t+1} = tanh(W_xh @ x + W_hh @ h_t + b_h)
+
+    The class encapsulates the parameters (``W_xh``, ``W_hh``, ``b_h_baseline``)
+    and the current state (``h``). The state evolves through the ``step`` method.
+    The bias can be modulated by an external signal via ``apply_bias_perturbation``;
+    this is used, for example, when the network is coupled to a heart oscillator
+    (see the ``coupling`` module).
+
+    Weights are initialized from a normal distribution scaled by ``1/sqrt(fan_in)``,
+    with ``W_hh`` further scaled by the gain ``g``. This scaling ensures the
+    argument of tanh stays in the informative regime, and ``g`` controls the
+    dynamical regime of the network.
+    """
+
+    def __init__(self, seed: int, hidden_size: int, input_size: int, g: float, h0: np.ndarray) -> None:
+        """Initialize the network with random weights and a given initial state.
+
+        Parameters
+        ----------
+        seed : int
+            Seed for the random number generator (for reproducibility).
+        hidden_size : int
+            Dimension of the hidden state space (``N``).
+        input_size : int
+            Dimension of the input vector.
+        g : float
+            Gain parameter that scales ``W_hh``. Controls the dynamical regime:
+            ``g < 1`` produces convergence, ``g ≈ 1`` is the critical threshold,
+            ``g > 1`` produces rich dynamics (limit cycles, chaos).
+        h0 : np.ndarray
+            Initial hidden state, shape ``(hidden_size,)``.
+        """
+
+        # Each time an instance is created, a new rng is initialized:
+        # this is good because I want reproducibility.
+        self._rng = np.random.default_rng(seed)
+    
+        self._W_xh = self._rng.normal( size = (hidden_size, input_size), scale = _weight_std(input_size) )
+        # The "main actor" for the dynamics is the layer W_hh.
+        self._W_hh = g * self._rng.normal( size = (hidden_size, hidden_size), scale = _weight_std(hidden_size) )
+        self._b_h_baseline = self._rng.normal( size = hidden_size ) 
+        self._b_h = self._b_h_baseline.copy()
+
+        # Inital hidden state is set by the caller.
+        self._state = h0
+
+
+    def apply_bias_perturbation(self, perturbation: np.ndarray) -> None:
+        """Update the current bias as ``b_h_baseline + perturbation``.
+
+        This is the entry point for external modulation of the network. The
+        ``perturbation`` is added to a fixed baseline; the baseline itself
+        never changes. Passing zeros restores the unperturbed dynamics.
+
+        Parameters
+        ----------
+        perturbation : np.ndarray
+            A vector of shape ``(hidden_size,)`` that is added to the baseline
+            bias to produce the current bias used in the next call to ``step``.
+        """
+        self._b_h = self._b_h_baseline + perturbation
+
+
+    def step(self, x: np.ndarray) -> None:
+        """Advance the hidden state by one step.
+
+        Uses the current bias, which may have been modulated
+        by a previous call to ``apply_bias_perturbation``.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Input vector of shape ``(input_size,)``.
+        """
+        self._state = np.tanh( self._W_xh @ x + self._W_hh @ self._state + self._b_h )
+
+
+    # === Getters ===
+    @property
+    def W_xh(self) -> np.ndarray: 
+        """Reads the input projection layer."""
+        return self._W_xh.copy()
+    
+    @property
+    def W_hh(self) -> np.ndarray: 
+        """Reads the state projection layer."""
+        return self._W_hh.copy()
+    
+    @property
+    def b_h_baseline(self) -> np.ndarray: 
+        """Reads the baseline bias b_h."""
+        return self._b_h_baseline.copy()
+
+    @property
+    def b_h(self) -> np.ndarray: 
+        """Reads the bias b_h."""
+        return self._b_h.copy()
+
+    @property
+    def state(self) -> np.ndarray: 
+        """The current hidden state ``h``, shape ``(hidden_size,)``.
+
+        Read-only. Modify via ``step``.
+        """
+        return self._state.copy()
+    
+
 # === Utility Functions ===
 def _weight_std(input_size: int) -> float:
     """Inversely propotional scale of weights standard deviation. w.r.t. input dimension of the layer."""

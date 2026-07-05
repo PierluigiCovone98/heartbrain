@@ -97,42 +97,50 @@ class VanillaRNN:
     (see the ``coupling`` module).
 
     Weights are initialized from a normal distribution scaled by ``1/sqrt(fan_in)``,
-    with ``W_hh`` further scaled by the gain ``g``. This scaling ensures the
-    argument of tanh stays in the informative regime, and ``g`` controls the
-    dynamical regime of the network.
+    with ``W_hh`` further scaled by the gain ``g`` if required.
+    This scaling ensures the argument of tanh stays in the informative regime,
+    and ``g`` controls the dynamical regime of the network.
     """
 
-    def __init__(self, seed: int, hidden_size: int, input_size: int, g: float, h0: np.ndarray) -> None:
+    def __init__(self, hidden_size: int, input_size: int, h0: np.ndarray, rng: np.random.Generator) -> None:
         """Initialize the network with random weights and a given initial state.
 
         Parameters
         ----------
-        seed : int
-            Seed for the random number generator (for reproducibility).
         hidden_size : int
             Dimension of the hidden state space (``N``).
         input_size : int
             Dimension of the input vector.
-        g : float
-            Gain parameter that scales ``W_hh``. Controls the dynamical regime:
-            ``g < 1`` produces convergence, ``g ≈ 1`` is the critical threshold,
-            ``g > 1`` produces rich dynamics (limit cycles, chaos).
         h0 : np.ndarray
             Initial hidden state, shape ``(hidden_size,)``.
+        rng : np.random.Generator
+            Normal random number generator to initiliaze network parameters.
         """
-
-        # Each time an instance is created, a new rng is initialized:
-        # this is good because I want reproducibility.
-        self._rng = np.random.default_rng(seed)
     
-        self._W_xh = self._rng.normal( size = (hidden_size, input_size), scale = _weight_std(input_size) )
-        # The "main actor" for the dynamics is the layer W_hh.
-        self._W_hh = g * self._rng.normal( size = (hidden_size, hidden_size), scale = _weight_std(hidden_size) )
-        self._b_h_baseline = self._rng.normal( size = hidden_size ) 
+        self._W_xh = rng.normal( size = (hidden_size, input_size), scale = _weight_std(input_size) )
+        # TODO: implement a ``_W_xh_baseline`` version if required later.
+
+        self._W_hh_baseline = rng.normal( size = (hidden_size, hidden_size), scale = _weight_std(hidden_size) )
+        self._W_hh = self._W_hh_baseline.copy()
+
+        self._b_h_baseline = rng.normal( size = hidden_size ) 
         self._b_h = self._b_h_baseline.copy()
 
         # Inital hidden state is set by the caller.
         self._state = h0
+
+
+    def scale_W_hh(self, g: float) -> None:
+        """Scale the layer ``W_hh`` by g.
+        
+        Parameters
+        ----------
+        g : float
+            Gain parameter that scales ``W_hh``. Controls the dynamical regime:
+            ``g < 1`` produces convergence, ``g ≈ 1`` is the critical threshold,
+            ``g > 1`` produces rich dynamics (limit cycles, chaos).
+        """
+        self._W_hh = g * self._W_hh_baseline
 
 
     def apply_bias_perturbation(self, perturbation: np.ndarray) -> None:
@@ -168,22 +176,27 @@ class VanillaRNN:
     # === Getters ===
     @property
     def W_xh(self) -> np.ndarray: 
-        """Reads the input projection layer."""
+        """Reads safely the input projection layer."""
         return self._W_xh.copy()
     
     @property
+    def W_hh_baseline(self) -> np.ndarray: 
+        """Reads safely the baseline state projection layer."""
+        return self._W_hh_baseline.copy()
+
+    @property
     def W_hh(self) -> np.ndarray: 
-        """Reads the state projection layer."""
+        """Reads safely the scaled state projection layer."""
         return self._W_hh.copy()
     
     @property
     def b_h_baseline(self) -> np.ndarray: 
-        """Reads the baseline bias b_h."""
+        """Reads safely the baseline bias b_h."""
         return self._b_h_baseline.copy()
 
     @property
     def b_h(self) -> np.ndarray: 
-        """Reads the bias b_h."""
+        """Reads safely the bias b_h."""
         return self._b_h.copy()
 
     @property

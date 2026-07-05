@@ -56,32 +56,54 @@ def main():
     x = rng.normal(size=INPUT_SIZE)
     h0 = brain.init_h0(hidden_size=N)
 
-    # W_xh and W_hh are both initialized with normal-scaled weights,
-    # where the standard deviation is
-    #       sigma =  1/sqrt(fan_in).
-    # 
-    # Here fan_in = INPUT_SIZE for W_xh, and fan_in = N for W_hh.
-    params = brain.init_params(input_size=INPUT_SIZE,
-                                hidden_size=N, 
-                                rng=rng)
+    # === Weights Initialization (Functions Version) ===
+    # # W_xh and W_hh are both initialized with normal-scaled weights,
+    # # where the standard deviation is
+    # #       sigma =  1/sqrt(fan_in).
+    # # 
+    # # Here fan_in = INPUT_SIZE for W_xh, and fan_in = N for W_hh.
+    # params = brain.init_params(input_size=INPUT_SIZE,
+    #                             hidden_size=N, 
+    #                             rng=rng)
 
-    # ``W_hh`` is our ``W_base`` (just to be clear).
-    W_base = params.W_hh
+    # # ``W_hh`` is our ``W_base`` (just to be clear).
+    # W_base = params.W_hh
+    # ====================================================
+
+    
+    # === Weights Initialization (Object Version) ===
+    rnn = brain.VanillaRNN(
+        hidden_size=N,
+        input_size=INPUT_SIZE,
+        h0=h0,
+        rng=rng
+    )
 
 
     # === Sweep g ===
     g_values = np.linspace(start=G_MIN, stop=G_MAX, num=NUM_G)
 
 
-    # === Run The Cell ===
+    # === Run The Cell (Functions Verison) ===
+    # g_trajectories = []
+    # for g in g_values:
+        
+    #     # The scaled ``W_hh = g * W_base`` is computed directly in the constructor.
+    #     new_params = brain.VanillaRNNParams(W_xh=params.W_xh, 
+    #                                         W_hh= g * W_base, 
+    #                                         b_h=params.b_h)
+    #     trajectory = _run_single_experiment_functions_version(x=x,params=new_params, h0=h0, n_steps=N_STEPS)
+    #     g_trajectories.append( (g, trajectory) )
+    # ==================================
+
+
+    # === Run The Cell (Object Version) ===
     g_trajectories = []
     for g in g_values:
         
-        # The scaled ``W_hh = g * W_base`` is computed directly in the constructor.
-        new_params = brain.VanillaRNNParams(W_xh=params.W_xh, 
-                                            W_hh= g * W_base, 
-                                            b_h=params.b_h)
-        trajectory = _run_single_experiment(x=x,params=new_params, h_0=h0, n_steps=N_STEPS)
+        rnn.scale_W_hh(g)
+
+        trajectory = _run_single_experiment_object_version(x=x, rnn=rnn, n_steps=N_STEPS)
         g_trajectories.append( (g, trajectory) )
 
  
@@ -108,15 +130,26 @@ def main():
         #     _print_trajectory(i, len(g_trajectories), g, trajectory, file=log)
 
 
-def _run_single_experiment(x: np.ndarray, params: brain.VanillaRNNParams, h_0: np.ndarray, n_steps: int) -> list[np.ndarray]:
+def _run_single_experiment_functions_version(x: np.ndarray, params: brain.VanillaRNNParams, h0: np.ndarray, n_steps: int) -> list[np.ndarray]:
     """Run the cell for n_steps steps with fixed parameters (encapsulated in params). 
-    Returns the full trajectory as a list of states, starting with h_0.
+    Returns the full trajectory as a list of states, starting with h0.
     """
-    trajectory = [h_0]
-    h = h_0
+    trajectory = [h0]
+    h = h0
     for _ in range(1, n_steps):
         h = brain.cell_forward(x, h, params)
         trajectory.append(h)
+    return trajectory
+
+
+def _run_single_experiment_object_version(x: np.ndarray, rnn: brain.VanillaRNN, n_steps: int) -> list[np.ndarray]:
+    """Run the cell for n_steps steps with fixed weights encapsulated in the brain.VanillaRNN object.
+    Returns the full trajectory as a list of states, starting with h0.
+    """
+    trajectory = [rnn.state]
+    for _ in range(1, N_STEPS):
+        rnn.step(x)
+        trajectory.append(rnn.state)
     return trajectory
 
 

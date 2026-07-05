@@ -100,11 +100,16 @@ def main():
     # === Run The Cell (Object Version) ===
     g_trajectories = []
     for g in g_values:
+
+        # Required to do not carry last state form previous "g"
+        rnn.reset_state()
         
         rnn.scale_W_hh(g)
 
         trajectory = _run_single_experiment_object_version(x=x, rnn=rnn, n_steps=N_STEPS)
         g_trajectories.append( (g, trajectory) )
+
+        
 
  
     # === Set ups experiment logger ===

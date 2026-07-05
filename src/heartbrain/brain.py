@@ -127,7 +127,8 @@ class VanillaRNN:
         self._b_h = self._b_h_baseline.copy()
 
         # Inital hidden state is set by the caller.
-        self._state = h0
+        self._initial_state = h0
+        self._state = self._initial_state.copy()
 
 
     def scale_W_hh(self, g: float) -> None:
@@ -173,6 +174,11 @@ class VanillaRNN:
         self._state = np.tanh( self._W_xh @ x + self._W_hh @ self._state + self._b_h )
 
 
+    def reset_state(self) -> None:
+        """Reset the current state to the initial state."""
+        self._state = self._initial_state.copy()
+
+
     # === Getters ===
     @property
     def W_xh(self) -> np.ndarray: 
@@ -198,6 +204,11 @@ class VanillaRNN:
     def b_h(self) -> np.ndarray: 
         """Reads safely the bias b_h."""
         return self._b_h.copy()
+
+    @property
+    def initial_state(self) -> np.ndarray: 
+        """Reads safely the initial state h0."""
+        return self._initial_state.copy()
 
     @property
     def state(self) -> np.ndarray: 

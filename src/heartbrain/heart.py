@@ -54,6 +54,9 @@ class Heart:
             raise ValueError("Cannot have mu <= 0; " \
             "this breaks the self-supported requirement.")
 
+        self._initial_x = initial_x
+        self._initial_y = initial_y
+
         self.current_x = initial_x
         self.current_y = initial_y
         self.mu = mu
@@ -84,6 +87,11 @@ class Heart:
         self.current_x, self.current_y = integrators.rk4_step(differentiator, self.current_x, self.current_y, dt)
 
 
+    def get_initial_state(self) -> integrators.HeartState:
+        """Return the initial state (x, y)."""
+        return (self._initial_x, self._initial_y)
+
+
     def get_state(self) -> integrators.HeartState:
         """Return a snapshot of the heart state."""
         return (self.current_x, self.current_y)
@@ -102,6 +110,12 @@ class Heart:
         
         self.current_x = x
         self.current_y = y
+
+
+    def reset_state(self) -> None:
+        """Restore the heart state with initial values."""
+        self.current_x = self._initial_x
+        self.current_y = self._initial_y
 
 
     def _differentiate(self, x: float, y: float, sigma: float) -> integrators.VelocityVector:

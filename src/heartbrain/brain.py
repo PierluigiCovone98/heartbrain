@@ -39,8 +39,8 @@ def init_params(input_size: int, hidden_size: int, rng: np.random.Generator) -> 
     ``hidden_size`` is the size of the (hidden) state space.
     """
     return VanillaRNNParams(
-        W_xh= rng.normal( size = (hidden_size, input_size), scale = _weight_std(input_size) ),
-        W_hh= rng.normal( size = (hidden_size, hidden_size), scale = _weight_std(hidden_size) ),
+        W_xh= rng.normal( size = (hidden_size, input_size), scale = weight_std(input_size) ),
+        W_hh= rng.normal( size = (hidden_size, hidden_size), scale = weight_std(hidden_size) ),
         b_h= rng.normal( size = hidden_size )
     )
 
@@ -117,10 +117,10 @@ class VanillaRNN:
             Normal random number generator to initiliaze network parameters.
         """
     
-        self._W_xh = rng.normal( size = (hidden_size, input_size), scale = _weight_std(input_size) )
+        self._W_xh = rng.normal( size = (hidden_size, input_size), scale = weight_std(input_size) )
         # TODO: implement a ``_W_xh_baseline`` version if required later.
 
-        self._W_hh_baseline = rng.normal( size = (hidden_size, hidden_size), scale = _weight_std(hidden_size) )
+        self._W_hh_baseline = rng.normal( size = (hidden_size, hidden_size), scale = weight_std(hidden_size) )
         self._W_hh = self._W_hh_baseline.copy()
 
         self._b_h_baseline = rng.normal( size = hidden_size ) 
@@ -220,6 +220,6 @@ class VanillaRNN:
     
 
 # === Utility Functions ===
-def _weight_std(input_size: int) -> float:
+def weight_std(input_size: int) -> float:
     """Inversely propotional scale of weights standard deviation. w.r.t. input dimension of the layer."""
     return 1 / np.sqrt(input_size)

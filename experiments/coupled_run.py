@@ -7,7 +7,11 @@ import numpy as np
 from heartbrain import brain, heart, coupling
 
 # Constants
-SEED = 42
+# Temporary choice;
+# to avoid statistichal correlation I have to use:
+#   np.random.SeedSequence(SEED).spawn(n)
+SEED1 = 42
+SEED2 = 54
 
 # === brain
 INPUT_SIZE = 3
@@ -16,10 +20,10 @@ G = 2.04    # Edge of chaos (?)
 
 # === heart
 DT = 0.01
-HEART_RUNS = 500
 SIGMA = 0.0
 
 # === coupled
+N_STEPS = 10
 K_HB = 0.0
 
 
@@ -28,8 +32,8 @@ def main():
     # Two different normal random number generators
     # does not bind future reproductions of the experiment
     # to specific "call sequences".
-    brain_rng = np.random.default_rng(SEED)
-    coupled_rng = np.random.default_rng(SEED)
+    brain_rng = np.random.default_rng(SEED1)
+    coupled_rng = np.random.default_rng(SEED2)
 
     # === Vanilla RNN setup ===
     #
@@ -65,23 +69,14 @@ def main():
     )
     K = coupling.build_K(k_hb=K_HB, K_baseline=K_baseline)
 
-    # Try one interaction from the heart 
-    # to the brain. Let's assume that the heart
-    # is the first to born, so it "runs" for 
-    # few steps.
-    xs, ys = np.empty(HEART_RUNS), np.empty(HEART_RUNS)
-    for i in range(HEART_RUNS):
-        xs[i], ys[i] = h.current_x, h.current_y
-        h.step(sigma=SIGMA, dt=DT)
-
-
     # At this point the heart state is in its limit cycle.
     # Let's implement one actual interaction (directed).
-    h_state = h.get_state()
-    perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=h_state)
-    rnn.apply_bias_perturbation(perturbation)
-    rnn.step(x=x)
-    h.step(sigma=SIGMA, dt=DT)
+    for _ in range(N_STEPS):
+        h_state = h.get_state()
+        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=h_state)
+        rnn.apply_bias_perturbation(perturbation)
+        rnn.step(x=x)
+        h.step(sigma=SIGMA, dt=DT)
 
 if __name__=="__main__":
     main()

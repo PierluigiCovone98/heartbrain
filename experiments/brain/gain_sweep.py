@@ -22,7 +22,8 @@ Results are stored in a list of (g, trajectory) tuples and then logged.
 """
 import numpy as np
 
-from heartbrain import brain, persistence
+from heartbrain import brain
+from heartbrain.infra import persistence
 from heartbrain.infra.experiment_logger import ExperimentLogger
 
 from typing import TextIO
@@ -82,6 +83,12 @@ def main():
     )
 
 
+    # === Save the baseline RNN ===
+    persistence.save_network(rnn=rnn, name=RNN_BASELINE_NAME)
+    # Log
+    print(f"OK - {RNN_BASELINE_NAME} correctly saved.")
+
+
     # === Sweep g ===
     g_values = np.linspace(start=G_MIN, stop=G_MAX, num=NUM_G)
 
@@ -97,12 +104,6 @@ def main():
     #     trajectory = _run_single_experiment_functions_version(x=x,params=new_params, h0=h0, n_steps=N_STEPS)
     #     g_trajectories.append( (g, trajectory) )
     # ==================================
-
-
-    # === Save the baseline RNN ===
-    persistence.save_network(rnn=rnn, name=RNN_BASELINE_NAME)
-    # Log
-    print(f"OK - {RNN_BASELINE_NAME} correctly saved.")
 
 
     # === Run The Cell (Object Version) ===

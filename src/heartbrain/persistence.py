@@ -35,7 +35,9 @@ _EXTENSION = ".npz"
 
 
 def _resolve_path(name: str) -> Path:
-    """Turn a bare network name into its full path ``.../<name>.npz``."""
+    """Turn a bare network name into its full path ``.../<name>.npz``.
+    Notice that the extension is manually added but Numpy add it too.
+    """
     return _SAVE_DIR / (name + _EXTENSION)
 
 

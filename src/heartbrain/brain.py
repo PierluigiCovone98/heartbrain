@@ -13,6 +13,7 @@ deep learning code. Here we use ``W @ x`` because it aligns with
 the dynamical-systems literature .
 """
 from dataclasses import dataclass
+from typing import Self
 
 import numpy as np
 
@@ -130,6 +131,30 @@ class VanillaRNN:
         self._initial_state = h0
         self._state = self._initial_state.copy()
 
+
+    @classmethod
+    def from_weights(cls, W_xh: np.ndarray, W_hh_baseline: np.ndarray, 
+                     b_h_baseline: np.ndarray, h0: np.ndarray) -> Self:
+        """Create a baseline Vanilla RNN with weights passed as arguments in input."""
+        
+        # Raw ``VanillaRNN`` instance allows to bypass the ``__init__`` method.
+        rnn = cls.__new__(cls)
+
+        # From Weights initialization.
+        # Makes copies to avoid external changes of weights. 
+        rnn._W_xh = W_xh.copy()
+        
+        rnn._W_hh_baseline = W_hh_baseline.copy()
+        rnn._W_hh = W_hh_baseline.copy()
+        
+        rnn._b_h_baseline = b_h_baseline.copy()
+        rnn._b_h = b_h_baseline.copy()
+
+        rnn._initial_state = h0.copy()
+        rnn._state = h0.copy()
+        
+        return rnn
+        
 
     def scale_W_hh(self, g: float) -> None:
         """Scale the layer ``W_hh`` by g.

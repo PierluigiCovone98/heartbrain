@@ -5,9 +5,12 @@ More details later...
 import numpy as np
 
 from heartbrain import brain, heart, coupling
+from heartbrain.infra import persistence
 
 # Constants
-# Temporary choice;
+RNN_BASELINE_NAME = "gain_sweep_baseline"
+
+# Temporary choice:
 # to avoid statistichal correlation I have to use:
 #   np.random.SeedSequence(SEED).spawn(n)
 SEED1 = 42
@@ -28,6 +31,13 @@ K_HB = 0.0
 
 
 def main():
+
+    # Load the VanillaRNN instance studied 
+    # in the ``gain_sweep`` experiment.
+    # TODO: Use it instead of the random "rnn".
+    rnn1 = persistence.load_network(RNN_BASELINE_NAME)
+    # Log
+    print(f"OK - {RNN_BASELINE_NAME} correctly loaded.")
 
     # Two different normal random number generators
     # does not bind future reproductions of the experiment

@@ -22,3 +22,6 @@ output/
 
 # Git
 .git
+
+# Different types of data
+data/

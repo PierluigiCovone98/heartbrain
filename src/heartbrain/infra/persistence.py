@@ -23,22 +23,47 @@ from heartbrain.brain import VanillaRNN
 
 # Directory holding all saved networks, anchored to this file's location so the
 # path is stable no matter the working directory the experiment is launched from.
-# ``persistence.py`` lives in the source package; we climb to the project root
-# (two parents up) and descend into the data directory.
-# Please notice that if location of the current module is different from the 
-# declared source package, be careful that the following constant point to the 
-# correct directory
-_SAVE_DIR = Path(__file__).resolve().parent.parent / "data" / "saved_networks"
+_SAVE_DIR = Path("data") / "saved_networks"
 
 # Uniform extension for every saved network. Callers never specify it.
 _EXTENSION = ".npz"
+
+
+def _find_project_root(marker: str = "pyproject.toml") -> Path:
+    """Locate the project root by climbing until a marker file is found.
+
+    Walks upward from this module's location and returns the first ancestor
+    directory that contains ``marker``. Anchoring to a marker (rather than a
+    fixed number of parent steps) keeps the path correct regardless of how deep
+    this module sits in the package, so moving the file does not break it.
+
+    Parameters
+    ----------
+    marker : str
+        Name of the file that identifies the project root (default:
+        ``pyproject.toml``).
+
+    Returns
+    -------
+    Path
+        The project root directory.
+
+    Raises
+    ------
+    RuntimeError
+        If no ancestor directory contains ``marker``.
+    """
+    for parent in Path(__file__).resolve().parents:
+        if (parent / marker).exists():
+            return parent
+    raise RuntimeError(f"Project root ('{marker}') not found.")
 
 
 def _resolve_path(name: str) -> Path:
     """Turn a bare network name into its full path ``.../<name>.npz``.
     Notice that the extension is manually added but Numpy add it too.
     """
-    return _SAVE_DIR / (name + _EXTENSION)
+    return _find_project_root() / _SAVE_DIR / (name + _EXTENSION)
 
 
 def save_network(rnn: VanillaRNN, name: str) -> None:

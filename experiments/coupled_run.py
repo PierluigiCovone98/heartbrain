@@ -5,15 +5,15 @@ More details later...
 import numpy as np
 
 from heartbrain import brain, heart, coupling
-from heartbrain.infra.persistence import networks
+from heartbrain.infra.persistence import networks, experiments
 
 # Constants
+GAIN_SWEEP_EXP = "gain_sweep"
 RNN_BASELINE_NAME = "gain_sweep_baseline"
 
 # Temporary choice:
 # to avoid statistichal correlation I have to use:
 #   np.random.SeedSequence(SEED).spawn(n)
-SEED1 = 42
 SEED2 = 54
 
 # === brain
@@ -32,32 +32,23 @@ K_HB = 0.0
 
 def main():
 
-    # Load the VanillaRNN instance studied 
-    # in the ``gain_sweep`` experiment.
-    # TODO: Use it instead of the random "rnn".
-    rnn1 = networks.load_network(RNN_BASELINE_NAME)
-    # Log
-    print(f"OK - {RNN_BASELINE_NAME} correctly loaded.")
+    # === Previous Experiment infos Restoring ===
+    _, arrays = experiments.load_experiment(GAIN_SWEEP_EXP)
+    print(f"OK - {GAIN_SWEEP_EXP} experiment correctly loaded.")    # Log
 
-    # Two different normal random number generators
-    # does not bind future reproductions of the experiment
-    # to specific "call sequences".
-    brain_rng = np.random.default_rng(SEED1)
-    coupled_rng = np.random.default_rng(SEED2)
 
     # === Vanilla RNN setup ===
     #
-    # We use the same order used in the ``gain_sweep``
-    # experiment such that the dynamics for a given 
-    # value of ``g`` is well known.  
-    x = brain_rng.normal(size=INPUT_SIZE)
-    h0 = brain.init_h0(hidden_size=N)
-    rnn = brain.VanillaRNN(
-        hidden_size=N,
-        input_size=INPUT_SIZE,
-        h0=h0,
-        rng=brain_rng
-    )
+    # Load the VanillaRNN instance studied in the ``gain_sweep`` experiment.
+    rnn = networks.load_network(RNN_BASELINE_NAME)
+    print(f"OK - {RNN_BASELINE_NAME} network correctly loaded.")    # Log
+
+
+    # === Parameter setup ====
+    #
+    # To align this esperiment to the network studied in the "gain_sweep" one.
+    x = arrays["x"]
+    
     rnn.scale_W_hh(g=G)
 
 
@@ -72,6 +63,8 @@ def main():
     # heart and brain components.
     # Notice that I handwrote the value ``2``
     # for the seek of simplicity.
+    coupled_rng = np.random.default_rng(SEED2)
+
     K_baseline = coupling.create_K_baseline(
         rng=coupled_rng,
         N=N,

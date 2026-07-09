@@ -5,7 +5,7 @@ More details later...
 import numpy as np
 
 from heartbrain import brain, heart, coupling
-from heartbrain.infra import networks
+from heartbrain.infra.persistence import networks
 
 # Constants
 RNN_BASELINE_NAME = "gain_sweep_baseline"

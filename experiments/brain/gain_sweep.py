@@ -23,7 +23,7 @@ Results are stored in a list of (g, trajectory) tuples and then logged.
 import numpy as np
 
 from heartbrain import brain
-from heartbrain.infra import networks
+from heartbrain.infra.persistence import networks
 from heartbrain.infra.experiment_logger import ExperimentLogger
 
 from typing import TextIO

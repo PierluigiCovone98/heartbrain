@@ -1,4 +1,4 @@
-"""Persistence module.
+"""Networks module.
 
 Saves and loads baseline ``VanillaRNN`` instances to and from disk, keeping the
 network itself a pure mathematical object.

@@ -55,25 +55,12 @@ def main():
     
     rng = np.random.default_rng(SEED)
 
+
     # === Set up invariants ===
     x = rng.normal(size=INPUT_SIZE)
     h0 = brain.init_h0(hidden_size=N)
+  
 
-    # === Weights Initialization (Functions Version) ===
-    # # W_xh and W_hh are both initialized with normal-scaled weights,
-    # # where the standard deviation is
-    # #       sigma =  1/sqrt(fan_in).
-    # # 
-    # # Here fan_in = INPUT_SIZE for W_xh, and fan_in = N for W_hh.
-    # params = brain.init_params(input_size=INPUT_SIZE,
-    #                             hidden_size=N, 
-    #                             rng=rng)
-
-    # # ``W_hh`` is our ``W_base`` (just to be clear).
-    # W_base = params.W_hh
-    # ====================================================
-
-    
     # === Weights Initialization (Object Version) ===
     rnn = brain.VanillaRNN(
         hidden_size=N,
@@ -84,26 +71,15 @@ def main():
 
 
     # === Save the baseline RNN ===
-    persistence.save_network(rnn=rnn, name=RNN_BASELINE_NAME)
-    # Log
-    print(f"OK - {RNN_BASELINE_NAME} correctly saved.")
+    try:
+        persistence.save_network(rnn=rnn, name=RNN_BASELINE_NAME)
+        print(f"OK - {RNN_BASELINE_NAME} correctly saved.")
+    except FileExistsError as fee:
+        print(fee)
 
 
     # === Sweep g ===
     g_values = np.linspace(start=G_MIN, stop=G_MAX, num=NUM_G)
-
-
-    # === Run The Cell (Functions Verison) ===
-    # g_trajectories = []
-    # for g in g_values:
-        
-    #     # The scaled ``W_hh = g * W_base`` is computed directly in the constructor.
-    #     new_params = brain.VanillaRNNParams(W_xh=params.W_xh, 
-    #                                         W_hh= g * W_base, 
-    #                                         b_h=params.b_h)
-    #     trajectory = _run_single_experiment_functions_version(x=x,params=new_params, h0=h0, n_steps=N_STEPS)
-    #     g_trajectories.append( (g, trajectory) )
-    # ==================================
 
 
     # === Run The Cell (Object Version) ===
@@ -118,7 +94,7 @@ def main():
         trajectory = _run_single_experiment_object_version(x=x, rnn=rnn, n_steps=N_STEPS)
         g_trajectories.append( (g, trajectory) )
 
-    
+
     # === Set ups experiment logger ===
     logger = ExperimentLogger(
         experiment_type="gain_sweep",
@@ -133,14 +109,12 @@ def main():
         component="brain"
     )
 
+
     # Logs
     with logger.open() as log:
         _print_header(file=log)
         _print_summary(g_trajectories, file=log)
-        # # Detailed trajectories disabled for readability with N=64.
-        # for i, (g, trajectory) in enumerate(g_trajectories):
-        #     _print_trajectory(i, len(g_trajectories), g, trajectory, file=log)
-
+        
 
 def _run_single_experiment_functions_version(x: np.ndarray, params: brain.VanillaRNNParams, h0: np.ndarray, n_steps: int) -> list[np.ndarray]:
     """Run the cell for n_steps steps with fixed parameters (encapsulated in params). 

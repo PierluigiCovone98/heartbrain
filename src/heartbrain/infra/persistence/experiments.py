@@ -150,7 +150,7 @@ def _load_params_json(path) -> dict[str, object]:
 
 def _save_arrays_npz(path, arrays: dict[str, np.ndarray]) -> None:
     """Write array-valued conditions to an ``.npz`` archive."""
-    np.savez(file=path, **arrays)   # type: ignore[arg-type]
+    np.savez(path,**arrays)   # type: ignore[arg-type]
 
 
 def _load_arrays_npz(path) -> dict[str, np.ndarray]:

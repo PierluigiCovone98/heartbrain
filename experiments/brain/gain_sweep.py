@@ -23,13 +23,14 @@ Results are stored in a list of (g, trajectory) tuples and then logged.
 import numpy as np
 
 from heartbrain import brain
-from heartbrain.infra.persistence import networks
+from heartbrain.infra.persistence import networks, experiments
 from heartbrain.infra.experiment_logger import ExperimentLogger
 
 from typing import TextIO
 
 
 # Constants
+EXPERIMENT_NAME = "gain_sweep"
 RNN_BASELINE_NAME = "gain_sweep_baseline"
 
 SEED = 42
@@ -60,6 +61,16 @@ def main():
     x = rng.normal(size=INPUT_SIZE)
     h0 = brain.init_h0(hidden_size=N)
   
+
+    # === Save Experiment parameters
+    params = experiments.make_params(EXPERIMENT_NAME=EXPERIMENT_NAME,
+                                     RNN_BASELINE_NAME=RNN_BASELINE_NAME)
+    arrays = experiments.make_arrays(x=x)
+    try:
+        experiments.save_experiment(EXPERIMENT_NAME, params, arrays)
+    except FileExistsError as fee:
+        print(fee)
+
 
     # === Weights Initialization (Object Version) ===
     rnn = brain.VanillaRNN(

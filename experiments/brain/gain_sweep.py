@@ -63,7 +63,8 @@ def main():
   
 
     # === Save Experiment parameters
-    params = experiments.make_params(EXPERIMENT_NAME=EXPERIMENT_NAME,
+    params = experiments.make_params(SEED=SEED,
+                                     EXPERIMENT_NAME=EXPERIMENT_NAME,
                                      RNN_BASELINE_NAME=RNN_BASELINE_NAME)
     arrays = experiments.make_arrays(x=x)
     try:
@@ -71,7 +72,6 @@ def main():
         print(f"OK - {EXPERIMENT_NAME} correctly saved.")
     except FileExistsError as fee:
         print(fee)
-        return
 
 
     # === Weights Initialization (Object Version) ===
@@ -89,7 +89,6 @@ def main():
         print(f"OK - {RNN_BASELINE_NAME} correctly saved.")
     except FileExistsError as fee:
         print(fee)
-        return
 
 
     # === Sweep g ===
@@ -168,18 +167,6 @@ def _print_summary(g_trajectories: list[tuple[float, list[np.ndarray]]],
         print(f"g = {g:.4f}   period = {period_str:>3s}   "
               f"[{conv_status}]   last |dh| = {last_dh:.6f}",
               file=file)
-
-
-def _print_trajectory(index: int, total: int, g: float, trajectory: list[np.ndarray], file: TextIO | None = None) -> None:
-    """Print one experiment's trajectory with a header line."""
-    print(f"\n==== Experiment {index+1}/{total} — g = {g:.4f} ====", file=file)
-    for t, h in enumerate(trajectory):
-        h_str = ", ".join(f"{hi:+.4f}" for hi in h)
-        if t == 0:
-            distance_str = "-"
-        else:
-            distance_str = f"{np.linalg.norm(h - trajectory[t-1]):.6f}"
-        print(f"t={t:3d}   h = [{h_str}]   |dh| = {distance_str}", file=file)
 
 
 # === Period Detection ===

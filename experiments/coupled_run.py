@@ -17,8 +17,7 @@ RNN_BASELINE_NAME = "gain_sweep_baseline"
 SEED2 = 54
 
 # === brain
-INPUT_SIZE = 3
-N =64
+N =64   # TODO: it comes from the loaded network
 G = 2.04    # Edge of chaos (?)
 
 # === heart
@@ -58,11 +57,8 @@ def main():
 
     # === Coupling Them ===
     # 
-    # First we define those parameters that
-    # are required fot the interaction of
-    # heart and brain components.
-    # Notice that I handwrote the value ``2``
-    # for the seek of simplicity.
+    # First we define those parameters that are required for
+    # the interaction of heart and brain components.
     coupled_rng = np.random.default_rng(SEED2)
 
     K_baseline = coupling.create_K_baseline(
@@ -72,7 +68,6 @@ def main():
     )
     K = coupling.build_K(k_hb=K_HB, K_baseline=K_baseline)
 
-    # At this point the heart state is in its limit cycle.
     # Let's implement one actual interaction (directed).
     for _ in range(N_STEPS):
         h_state = h.get_state()

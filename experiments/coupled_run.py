@@ -5,7 +5,7 @@ More details later...
 import numpy as np
 
 from heartbrain import brain, heart, coupling
-from heartbrain.infra import persistence
+from heartbrain.infra import networks
 
 # Constants
 RNN_BASELINE_NAME = "gain_sweep_baseline"
@@ -35,7 +35,7 @@ def main():
     # Load the VanillaRNN instance studied 
     # in the ``gain_sweep`` experiment.
     # TODO: Use it instead of the random "rnn".
-    rnn1 = persistence.load_network(RNN_BASELINE_NAME)
+    rnn1 = networks.load_network(RNN_BASELINE_NAME)
     # Log
     print(f"OK - {RNN_BASELINE_NAME} correctly loaded.")
 

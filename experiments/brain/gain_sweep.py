@@ -23,7 +23,7 @@ Results are stored in a list of (g, trajectory) tuples and then logged.
 import numpy as np
 
 from heartbrain import brain
-from heartbrain.infra import persistence
+from heartbrain.infra import networks
 from heartbrain.infra.experiment_logger import ExperimentLogger
 
 from typing import TextIO
@@ -72,7 +72,7 @@ def main():
 
     # === Save the baseline RNN ===
     try:
-        persistence.save_network(rnn=rnn, name=RNN_BASELINE_NAME)
+        networks.save_network(rnn=rnn, name=RNN_BASELINE_NAME)
         print(f"OK - {RNN_BASELINE_NAME} correctly saved.")
     except FileExistsError as fee:
         print(fee)

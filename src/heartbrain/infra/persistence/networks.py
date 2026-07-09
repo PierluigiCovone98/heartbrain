@@ -14,60 +14,19 @@ project root. Callers provide only a name; the extension and the directory are
 handled here, so every network is saved uniformly and in one place regardless of
 where the experiment is launched from.
 """
-from pathlib import Path
-
 import numpy as np
 
 from heartbrain.brain import VanillaRNN
+from heartbrain.infra.persistence import _paths
 
 
-# Directory holding all saved networks, anchored to this file's location so the
-# path is stable no matter the working directory the experiment is launched from.
-_SAVE_DIR = Path("data") / "saved_networks"
-
-# Uniform extension for every saved network. Callers never specify it.
-_EXTENSION = ".npz"
-
-
-def _find_project_root(marker: str = "pyproject.toml") -> Path:
-    """Locate the project root by climbing until a marker file is found.
-
-    Walks upward from this module's location and returns the first ancestor
-    directory that contains ``marker``. Anchoring to a marker (rather than a
-    fixed number of parent steps) keeps the path correct regardless of how deep
-    this module sits in the package, so moving the file does not break it.
-
-    Parameters
-    ----------
-    marker : str
-        Name of the file that identifies the project root (default:
-        ``pyproject.toml``).
-
-    Returns
-    -------
-    Path
-        The project root directory.
-
-    Raises
-    ------
-    RuntimeError
-        If no ancestor directory contains ``marker``.
-    """
-    for parent in Path(__file__).resolve().parents:
-        if (parent / marker).exists():
-            return parent
-    raise RuntimeError(f"Project root ('{marker}') not found.")
-
-
-def _resolve_path(name: str) -> Path:
-    """Turn a bare network name into its full path ``.../<name>.npz``.
-    Notice that the extension is manually added but Numpy add it too.
-    """
-    return _find_project_root() / _SAVE_DIR / (name + _EXTENSION)
-
+# Constants
+_SUBDIR = "saved_networks"  # Directory holding all saved networks
+_EXTENSION = ".npz"         # Uniform extension for every saved network.
+   
 
 def save_network(rnn: VanillaRNN, name: str) -> None:
-    """Save a network's baseline identity to ``data/saved_networks/<name>.npz``.
+    """Save a network's baseline identity to ``root/data/saved_networks/<name>.npz``.
 
     Reads the network's static weights through its public getters (which already
     return copies) and writes them to a uniform ``.npz`` archive.
@@ -84,13 +43,13 @@ def save_network(rnn: VanillaRNN, name: str) -> None:
     FileExistsError
         If a network with this name already exists (no silent overwrite).
     """
-    path = _resolve_path(name)
+    path = _paths.resolve_path(subdir=_SUBDIR, name=name, extension=_EXTENSION)
 
     if path.exists():
         raise FileExistsError(f"A saved network named '{name}' already exists.")
 
     # Create the data directory on first use; harmless if it already exists.
-    _SAVE_DIR.mkdir(parents=True, exist_ok=True)
+    _paths.ensure_parent(path)
 
     np.savez(
         path,
@@ -102,7 +61,7 @@ def save_network(rnn: VanillaRNN, name: str) -> None:
 
 
 def load_network(name: str) -> VanillaRNN:
-    """Load a baseline network from ``data/saved_networks/<name>.npz``.
+    """Load a baseline network from ``root/data/saved_networks/<name>.npz``.
 
     Reads the stored weights and rebuilds a clean, not-yet-advanced network via
     ``VanillaRNN.from_weights``. The returned network is in its baseline state:
@@ -123,7 +82,7 @@ def load_network(name: str) -> VanillaRNN:
     FileNotFoundError
         If no network with this name exists.
     """
-    path = _resolve_path(name)
+    path = _paths.resolve_path(subdir=_SUBDIR, name=name, extension=_EXTENSION)
 
     if not path.exists():
         raise FileNotFoundError(f"No saved network named '{name}' found.")

@@ -68,8 +68,10 @@ def main():
     arrays = experiments.make_arrays(x=x)
     try:
         experiments.save_experiment(EXPERIMENT_NAME, params, arrays)
+        print(f"OK - {EXPERIMENT_NAME} correctly saved.")
     except FileExistsError as fee:
         print(fee)
+        return
 
 
     # === Weights Initialization (Object Version) ===
@@ -87,6 +89,7 @@ def main():
         print(f"OK - {RNN_BASELINE_NAME} correctly saved.")
     except FileExistsError as fee:
         print(fee)
+        return
 
 
     # === Sweep g ===

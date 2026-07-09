@@ -114,19 +114,7 @@ def main():
     with logger.open() as log:
         _print_header(file=log)
         _print_summary(g_trajectories, file=log)
-        
-
-def _run_single_experiment_functions_version(x: np.ndarray, params: brain.VanillaRNNParams, h0: np.ndarray, n_steps: int) -> list[np.ndarray]:
-    """Run the cell for n_steps steps with fixed parameters (encapsulated in params). 
-    Returns the full trajectory as a list of states, starting with h0.
-    """
-    trajectory = [h0]
-    h = h0
-    for _ in range(1, n_steps):
-        h = brain.cell_forward(x, h, params)
-        trajectory.append(h)
-    return trajectory
-
+          
 
 def _run_single_experiment_object_version(x: np.ndarray, rnn: brain.VanillaRNN, n_steps: int) -> list[np.ndarray]:
     """Run the cell for n_steps steps with fixed weights encapsulated in the brain.VanillaRNN object.

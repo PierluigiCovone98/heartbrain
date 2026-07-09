@@ -187,6 +187,11 @@ class VanillaRNN:
         """
         return self._state.copy()
     
+    @property
+    def N(self) -> int:
+        """Return the number of dimensions of the (hidden) state space."""
+        return self._W_hh_baseline.shape[0]
+    
 
 # === Utility Functions ===
 def weight_std(input_size: int) -> float:

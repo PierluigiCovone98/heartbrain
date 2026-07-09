@@ -17,7 +17,6 @@ RNN_BASELINE_NAME = "gain_sweep_baseline"
 SEED2 = 54
 
 # === brain
-N =64   # TODO: it comes from the loaded network
 G = 2.04    # Edge of chaos (?)
 
 # === heart
@@ -31,23 +30,19 @@ K_HB = 0.0
 
 def main():
 
-    # === Previous Experiment infos Restoring ===
-    _, arrays = experiments.load_experiment(GAIN_SWEEP_EXP)
-    print(f"OK - {GAIN_SWEEP_EXP} experiment correctly loaded.")    # Log
-
-
     # === Vanilla RNN setup ===
-    #
     # Load the VanillaRNN instance studied in the ``gain_sweep`` experiment.
     rnn = networks.load_network(RNN_BASELINE_NAME)
     print(f"OK - {RNN_BASELINE_NAME} network correctly loaded.")    # Log
 
 
-    # === Parameter setup ====
-    #
+    # === Parameters Setup ===
+    _, arrays = experiments.load_experiment(GAIN_SWEEP_EXP)
+    print(f"OK - {GAIN_SWEEP_EXP} experiment correctly loaded.")    # Log
+
     # To align this esperiment to the network studied in the "gain_sweep" one.
     x = arrays["x"]
-    
+    N = rnn.N
     rnn.scale_W_hh(g=G)
 
 
@@ -55,7 +50,7 @@ def main():
     h = heart.Heart()
 
 
-    # === Coupling Them ===
+    # === Coupling Components ===
     # 
     # First we define those parameters that are required for
     # the interaction of heart and brain components.

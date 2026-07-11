@@ -9,6 +9,7 @@ from pathlib import Path
 
 # Parent directory (under the project root) holding all saved data.
 _DATA_DIR = Path("data")
+_OUTPUT_DIR = Path("output")
 
 
 def _find_project_root(marker: str = "pyproject.toml") -> Path:
@@ -57,6 +58,24 @@ def data_subdir(subdir: str) -> Path:
         The absolute subdirectory path.
     """
     return _find_project_root() / _DATA_DIR / subdir
+
+
+def output_subdir(subdir: str) -> Path:
+    """Return the absolute path of an output subdirectory ``<root>/output/<subdir>``.
+
+    Does not create anything on disk; it only composes the path.
+
+    Parameters
+    ----------
+    subdir : str
+        Category subdirectory under ``output``.
+
+    Returns
+    -------
+    Path
+        The absolute subdirectory path.
+    """
+    return _find_project_root() / _OUTPUT_DIR / subdir
 
 
 def resolve_path(subdir: str, name: str, extension: str = "") -> Path:

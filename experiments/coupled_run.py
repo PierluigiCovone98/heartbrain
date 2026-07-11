@@ -5,6 +5,7 @@ More details later...
 import numpy as np
 
 from heartbrain import brain, heart, coupling
+from heartbrain.infra import plotting
 from heartbrain.infra.persistence import networks, experiments
 
 # Constants
@@ -86,6 +87,10 @@ def main():
         rnn.apply_bias_perturbation(perturbation)
         rnn.step(x=x)
         h.step(sigma=SIGMA, dt=DT)
+
+    # Plotting
+    plotting.plot_time_series(heart_time_series, brain_time_series, name="coupled_run")
+    
 
 
 

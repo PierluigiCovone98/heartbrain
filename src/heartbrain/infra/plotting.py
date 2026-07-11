@@ -86,3 +86,62 @@ def plot_time_series(heart_series,
     plt.close(fig)  # Free the figure; important when called in a loop.
 
     return path
+
+
+def plot_single_series(series,
+                       name: str,
+                       start: int | None = None,
+                       end: int | None = None,
+                       label: str = "s(t)",
+                       color: str = "steelblue") -> Path:
+    """Plot a single time series, optionally zoomed to a time window, and save it.
+ 
+    Meant for inspecting one signal in detail — e.g. the network's projected
+    scalar ``s(t)`` — where a full-length plot compresses thousands of steps into
+    a solid band. Passing ``start``/``end`` slices the series to a readable window
+    so individual oscillations separate. The x-axis keeps the original step
+    indices, so a zoomed window still shows *where* in the run it comes from.
+ 
+    Parameters
+    ----------
+    series : array-like
+        The signal to plot, one value per step.
+    name : str
+        Bare file name (no directory, no extension). Saved to
+        ``output/coupled/<name>.png``.
+    start : int | None
+        First step of the window (inclusive). ``None`` means from the beginning.
+    end : int | None
+        Last step of the window (exclusive). ``None`` means until the end.
+    label : str
+        Y-axis label for the signal.
+    color : str
+        Line color.
+ 
+    Returns
+    -------
+    Path
+        The path of the saved figure.
+    """
+    # Resolve the window; Python slice semantics handle None on both ends.
+    lo = start if start is not None else 0
+    hi = end if end is not None else len(series)
+    window = series[lo:hi]
+    steps = range(lo, lo + len(window))  # keep original step indices on the x-axis
+ 
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(steps, window, color=color, linewidth=1.0)
+    ax.set_ylabel(label)
+    ax.set_xlabel("step")
+    ax.grid(True, alpha=0.3)
+    fig.suptitle(name)
+    fig.tight_layout()
+ 
+    out_dir = _paths.output_subdir(_SUBDIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / (name + _EXTENSION)
+ 
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+ 
+    return path

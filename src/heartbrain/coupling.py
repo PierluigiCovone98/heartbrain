@@ -43,6 +43,11 @@ def create_K_baseline(rng: np.random.Generator, N: int, fan_in: int) -> np.ndarr
     return rng.normal( size=(N, fan_in), scale=brain.weight_std(input_size=fan_in) )
 
 
+def extract_K_baseline_x(K_baseline: np.ndarray) -> np.ndarray:
+    """Project the coupling baseline matrix ``K_baseline`` onto its first column."""
+    return K_baseline[:,0]
+
+
 def build_K(k_hb: float, K_baseline: np.ndarray) -> np.ndarray:
     """Build the coupling matrix ``K`` by scaling the baseline by the gain.
 

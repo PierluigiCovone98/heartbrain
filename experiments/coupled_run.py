@@ -61,15 +61,33 @@ def main():
         N=N,
         fan_in=2
     )
+    K_baseline_x = coupling.extract_K_baseline_x(K_baseline)
     K = coupling.build_K(k_hb=K_HB, K_baseline=K_baseline)
 
+    # Temporal series: 
+    # pre-allocate memory such that we certainly know how
+    # many steps there are. 
+    heart_time_series = np.zeros(N_STEPS)
+    brain_time_series = np.zeros(N_STEPS)
+
     # Let's implement one actual interaction (directed).
-    for _ in range(N_STEPS):
+    # We lose the last state; don't care on a high number of steps.
+    for t in range(N_STEPS):
+        
         h_state = h.get_state()
+
+        # "h_state[0]" beacuse "h_state := (x,y)".
+        heart_time_series[t] = h_state[0]
+        # s(t) = k_baseline_x @ b_state
+        brain_time_series[t] = rnn.project_state_onto(direction=K_baseline_x)
+
+        # Forward step of the system
         perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=h_state)
         rnn.apply_bias_perturbation(perturbation)
         rnn.step(x=x)
         h.step(sigma=SIGMA, dt=DT)
+
+
 
 if __name__=="__main__":
     main()

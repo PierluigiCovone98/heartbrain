@@ -148,6 +148,27 @@ class VanillaRNN:
         self._state = self._initial_state.copy()
 
 
+    def project_state_onto(self, direction: np.ndarray) -> float:
+        """Project the current state ``h(t)`` onto a direction, returning a scalar.
+
+        Computes the dot product ``direction · h(t)``, i.e. the component of the
+        current hidden state along ``direction``. Used to reduce the N-dimensional
+        state to a single scalar signal (e.g. for phase/coherence analysis), by
+        projecting onto a fixed structural direction.
+
+        Parameters
+        ----------
+        direction : np.ndarray
+            The direction to project onto, shape ``(N,)``.
+
+        Returns
+        -------
+        float
+            The scalar projection ``direction · h(t)``.
+        """
+        return (direction @ self.state).item()
+
+
     # === Getters ===
     @property
     def W_xh(self) -> np.ndarray: 

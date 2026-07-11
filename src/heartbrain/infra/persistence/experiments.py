@@ -17,7 +17,7 @@ import json
 
 import numpy as np
 
-from heartbrain.infra.persistence import _paths
+from heartbrain.infra import _paths
 
 
 # Constants

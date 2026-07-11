@@ -17,7 +17,7 @@ where the experiment is launched from.
 import numpy as np
 
 from heartbrain.brain import VanillaRNN
-from heartbrain.infra.persistence import _paths
+from heartbrain.infra import _paths
 
 
 # Constants

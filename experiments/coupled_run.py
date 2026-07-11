@@ -25,7 +25,7 @@ DT = 0.01
 SIGMA = 0.0
 
 # === coupled
-N_STEPS = 10
+N_STEPS = 10000
 K_HB = 0.0
 
 
@@ -89,7 +89,7 @@ def main():
         h.step(sigma=SIGMA, dt=DT)
 
     # Plotting
-    plotting.plot_time_series(heart_time_series, brain_time_series, name="coupled_run")
+    plotting.plot_time_series(heart_time_series, brain_time_series, name="coupled_run_10K")
     
 
 

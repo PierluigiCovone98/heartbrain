@@ -26,7 +26,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 2
+K_HB = -0.5
 
 
 def main():
@@ -94,7 +94,7 @@ def main():
     # plotting.plot_single_series(brain_time_series, "coupled_run_10K_brain_zoom2",start=2000, end=2101)
 
     plotting.plot_time_series(heart_time_series, brain_time_series,
-                          name="coupled_run_10K_khb_2", start=2000, end=3200)
+                          name="coupled_run_10K_khb_min05", start=2000, end=3200)
 
 if __name__=="__main__":
     main()

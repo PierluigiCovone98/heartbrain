@@ -5,8 +5,9 @@ More details later...
 import numpy as np
 
 from heartbrain import brain, heart, coupling
-from heartbrain.infra import plotting
+from heartbrain.infra import plotting, analysis
 from heartbrain.infra.persistence import networks, experiments
+
 
 # Constants
 GAIN_SWEEP_EXP = "gain_sweep"
@@ -26,8 +27,10 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = -0.5
+K_HB = 0.5
 
+# === brain signal filtering
+CUTOFF_PERIOD = 100
 
 def main():
 
@@ -88,13 +91,19 @@ def main():
         rnn.step(x=x)
         h.step(sigma=SIGMA, dt=DT)
 
-    # Plotting
+    # Plotting1
     # plotting.plot_time_series(heart_time_series, brain_time_series, name="coupled_run_10K")
     # plotting.plot_single_series(brain_time_series, "coupled_run_10K_brain_zoom1",start=2000, end=2601)
     # plotting.plot_single_series(brain_time_series, "coupled_run_10K_brain_zoom2",start=2000, end=2101)
+    # plotting.plot_time_series(heart_time_series, brain_time_series, name="coupled_run_10K_khb_05", start=2000, end=3200)
 
-    plotting.plot_time_series(heart_time_series, brain_time_series,
-                          name="coupled_run_10K_khb_min05", start=2000, end=3200)
+
+    # === Brain time series filtering ====
+    brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)
+
+    # Plotting2
+    plotting.plot_time_series(heart_time_series, brain_slow, name="coupled_run_10K_khb_05_filtered1", start=2000, end=3200, brain_label="brain  s_slow(t)")
+
 
 if __name__=="__main__":
     main()

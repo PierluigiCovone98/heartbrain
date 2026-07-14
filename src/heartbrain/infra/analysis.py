@@ -51,5 +51,5 @@ def low_pass_filter(signal: np.ndarray, cutoff_period: float) -> np.ndarray:
     # Design the Butterworth low-pass and apply it forward-and-backward.
     # Notice that the type checker has been explicitly silenced because unable
     # to make the correct type inference.
-    b, a = butter(N=_FILTER_ORDER, Wn=normalized_cutoff, btype="low")   # type: ignore[misc] 
+    b, a = butter(N=_FILTER_ORDER, Wn=normalized_cutoff, btype="low", output='ba')   # type: ignore[misc] 
     return filtfilt(b, a, signal)

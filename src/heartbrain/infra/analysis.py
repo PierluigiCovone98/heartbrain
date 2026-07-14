@@ -5,7 +5,7 @@ Nothing here changes how the system evolves: these functions
 run on the data it produces.
 """
 import numpy as np
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, hilbert
 
 
 # Filter design constants (see module discussion for the rationale).
@@ -53,3 +53,48 @@ def low_pass_filter(signal: np.ndarray, cutoff_period: float) -> np.ndarray:
     # to make the correct type inference.
     b, a = butter(N=_FILTER_ORDER, Wn=normalized_cutoff, btype="low", output='ba')   # type: ignore[misc] 
     return filtfilt(b, a, signal)
+
+
+def _center_on_zero(signal: np.ndarray) -> np.ndarray:
+    """Subtract the mean so the signal oscillates around zero.
+ 
+    A precondition for the Hilbert transform, whose phase is only meaningful for
+    a signal centered on zero. Kept as its own function to name the operation
+    ("bring to zero mean") independently of who needs it.
+    """
+    return signal - np.mean(signal)
+ 
+ 
+def instantaneous_phase(signal: np.ndarray) -> np.ndarray:
+    """Instantaneous phase of an oscillating signal, via the Hilbert transform.
+ 
+    Centers the signal on zero, builds the analytic signal (the original as the
+    real part, its 90°-shifted version as the imaginary part — the two
+    coordinates of the rotating point), and returns the angle of that point at
+    each step: the instantaneous phase.
+ 
+    The phase is wrapped in ``(-π, π]`` — it rises then jumps back by ``2π``
+    each cycle (a sawtooth). This is the natural form for a periodic angle and is
+    exactly what a phase-locking measure consumes; it is not unwrapped here.
+ 
+    The signal must be narrow-band (a single dominant oscillation) for the
+    phase to be well defined — hence apply ``low_pass_filter`` first to isolate
+    one scale. Border artifacts (from filtering and from Hilbert) affect the
+    start/end of the output; discarding the borders is the caller's job, at
+    measurement time.
+ 
+    Parameters
+    ----------
+    signal : np.ndarray
+        The 1-D oscillating signal, one sample per step. Expected to be already
+        band-limited (e.g. low-pass filtered).
+ 
+    Returns
+    -------
+    np.ndarray
+        The wrapped instantaneous phase in radians, same length as the input.
+    """
+    centered = _center_on_zero(signal)
+    # Specify the type such that no "type-inference" problems raises.
+    analytic: np.ndarray = hilbert(centered)    # type: ignore[assignment]
+    return np.angle(analytic) 

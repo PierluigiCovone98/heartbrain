@@ -102,7 +102,19 @@ def main():
     brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)
 
     # Plotting2
-    plotting.plot_time_series(heart_time_series, brain_slow, name="coupled_run_10K_khb_05_filtered1", start=2000, end=3200, brain_label="brain  s_slow(t)")
+    # plotting.plot_time_series(heart_time_series, brain_slow, name="coupled_run_10K_khb_05_filtered1", start=2000, end=3200, brain_label="brain  s_slow(t)")
+
+
+    # === Phase extraction ===
+    heart_phase = analysis.instantaneous_phase(heart_time_series)
+    brain_phase = analysis.instantaneous_phase(brain_slow)
+
+    # Plotting3: the two instantaneous phases (sawtooth)
+    plotting.plot_time_series(heart_phase, brain_phase,
+                              name="coupled_run_10K_khb_05_phases1",
+                              start=2000, end=3200,
+                              heart_label="phase heart",
+                              brain_label="phase brain")
 
 
 if __name__=="__main__":

@@ -32,6 +32,11 @@ K_HB = 0.5
 # === brain signal filtering
 CUTOFF_PERIOD = 100
 
+# === measurement window
+TRANSIENT_STEPS = 1000
+BORDER_STEPS = 500
+
+
 def main():
 
     # === Vanilla RNN setup ===
@@ -115,6 +120,13 @@ def main():
                               start=2000, end=3200,
                               heart_label="phase heart",
                               brain_label="phase brain")
+
+
+    # === Coherence ===
+    heart_phase_valid = analysis.discard_borders(heart_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    brain_phase_valid = analysis.discard_borders(brain_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    plv = analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
+    print(f"PLV (k_hb={K_HB}) = {plv:.4f}")
 
 
 if __name__=="__main__":

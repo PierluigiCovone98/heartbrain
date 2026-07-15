@@ -98,3 +98,97 @@ def instantaneous_phase(signal: np.ndarray) -> np.ndarray:
     # Specify the type such that no "type-inference" problems raises.
     analytic: np.ndarray = hilbert(centered)    # type: ignore[assignment]
     return np.angle(analytic) 
+
+
+def discard_borders(series: np.ndarray, n_start: int, n_end: int) -> np.ndarray:
+    """Drop samples from the start and the end of a time series.
+ 
+    Border samples are often unusable: transformations that need surrounding
+    context (filtering, analytic-signal construction) have none at the extremes
+    and distort the output there, and a run's opening samples may still be a
+    transient. Both are spurious — they reflect the procedure, not the system —
+    so they are dropped before measuring.
+ 
+    The two amounts are independent because the two ends usually need different
+    trims.
+ 
+    Parameters
+    ----------
+    series : np.ndarray
+        The 1-D time series to trim.
+    n_start : int
+        Number of samples to drop from the beginning.
+    n_end : int
+        Number of samples to drop from the end.
+ 
+    Returns
+    -------
+    np.ndarray
+        The interior of the series, of length ``len(series) - n_start - n_end``.
+ 
+    Raises
+    ------
+    ValueError
+        If the requested trims leave nothing.
+    """
+    if n_start + n_end >= len(series):
+        raise ValueError(
+            f"Trimming {n_start} + {n_end} samples leaves nothing of a "
+            f"{len(series)}-sample series."
+        )
+ 
+    # ``n_end`` counts from the end; slicing with a negative stop, or with None
+    # when nothing is dropped (series[a:-0] would be empty).
+    stop = -n_end if n_end > 0 else None
+    return series[n_start:stop]
+ 
+ 
+def phase_locking_value(phase_a: np.ndarray, phase_b: np.ndarray) -> float:
+    """Phase locking value between two instantaneous-phase series.
+ 
+    Measures how stable the phase difference between the two signals is, i.e.
+    how strongly they are locked, as a number in ``[0, 1]``.
+ 
+    Phases are angles, so ordinary statistics do not apply (the mean of 179° and
+    -179° is not 0°). Instead each phase difference is treated as a unit arrow on
+    the circle pointing in its direction; the arrows are averaged and the length
+    of the resulting arrow is the result. All pointing the same way (constant
+    difference) reinforce => length 1; scattered ones cancel out => length close to 0.
+    Complex numbers are only the convenient encoding of those arrows.
+ 
+    Symmetric in its arguments: swapping them flips the sign of the difference,
+    which does not change the resulting length.
+ 
+    Border artifacts are not handled here — pass series already trimmed to a
+    valid window (see ``discard_borders``).
+ 
+    Parameters
+    ----------
+    phase_a : np.ndarray
+        Instantaneous phase of the first signal, in radians.
+    phase_b : np.ndarray
+        Instantaneous phase of the second signal, in radians. Same length as
+        ``phase_a``.
+ 
+    Returns
+    -------
+    float
+        The phase locking value: 0 means no locking, 1 means perfect locking.
+ 
+    Raises
+    ------
+    ValueError
+        If the two phase series have different lengths.
+    """
+    if len(phase_a) != len(phase_b):
+        raise ValueError(
+            f"Phase length mismatch: {len(phase_a)} vs {len(phase_b)}."
+        )
+ 
+    # Numpy difference means "difference element-wise".
+    phase_difference = phase_b - phase_a
+ 
+    # Each difference becomes a unit arrow; average them and take the length.
+    unit_arrows = np.exp(1j * phase_difference)
+ 
+    return np.abs(np.mean(unit_arrows)).item()

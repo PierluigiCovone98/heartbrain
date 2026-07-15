@@ -27,7 +27,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.5
+K_HB = 0.0
 
 # === brain signal filtering
 CUTOFF_PERIOD = 100
@@ -115,11 +115,11 @@ def main():
     brain_phase = analysis.instantaneous_phase(brain_slow)
 
     # Plotting3: the two instantaneous phases (sawtooth)
-    plotting.plot_time_series(heart_phase, brain_phase,
-                              name="coupled_run_10K_khb_05_phases1",
-                              start=2000, end=3200,
-                              heart_label="phase heart",
-                              brain_label="phase brain")
+    # plotting.plot_time_series(heart_phase, brain_phase,
+    #                           name="coupled_run_10K_khb_05_phases1",
+    #                           start=2000, end=3200,
+    #                           heart_label="phase heart",
+    #                           brain_label="phase brain")
 
 
     # === Coherence ===

@@ -106,7 +106,7 @@ def main():
                                         b_h_baseline=rnn.b_h_baseline,
                                         h0=h0_base,
                                         x=x,
-                                        hrth=h,
+                                        oscillator=h,
                                         K=K,
                                         K_baseline_x=K_baseline_x)
     
@@ -115,7 +115,7 @@ def main():
                                         b_h_baseline=rnn.b_h_baseline,
                                         h0=h0_pert,
                                         x=x,
-                                        hrth=h,
+                                        oscillator=h,
                                         K=K,
                                         K_baseline_x=K_baseline_x)
 
@@ -205,7 +205,6 @@ def _run_simulation(W_xh: np.ndarray,
         oscillator.step(sigma=SIGMA, dt=DT)
 
     return (heart_time_series, brain_time_series)
-
 
 
 if __name__=="__main__":

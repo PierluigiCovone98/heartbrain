@@ -43,6 +43,7 @@ SEED2 = 54
 
 # === brain
 G = 2.04
+STATE_PERTURBATION = 1e-13
 
 # === heart
 DT = 0.01
@@ -63,6 +64,7 @@ BORDER_STEPS = 500
 def main():
 
     # === Vanilla RNN setup ===
+    # We use ``rnn`` as a "baseline RNN" from where we take weight.
     rnn = networks.load_network(RNN_BASELINE_NAME)
     print(f"OK - {RNN_BASELINE_NAME} network correctly loaded.")    # Log
 
@@ -73,7 +75,6 @@ def main():
 
     x = arrays["x"]
     N = rnn.N
-    rnn.scale_W_hh(g=G)
 
 
     # === Heart setup ===
@@ -91,7 +92,98 @@ def main():
     K_baseline_x = coupling.extract_K_baseline_x(K_baseline)
     K = coupling.build_K(k_hb=K_HB, K_baseline=K_baseline)
 
-    # Temporal series
+
+    # === Trajectory Divergence check ===
+    # = 1. Prepare initial states
+    h0_base = rnn.initial_state
+    
+    h0_pert = h0_base.copy()
+    h0_pert[0] += STATE_PERTURBATION
+
+    # = 2. Time series 
+    heart_A, brain_A = _run_simulation(W_xh=rnn.W_xh,
+                                        W_hh_baseline=rnn.W_hh_baseline,
+                                        b_h_baseline=rnn.b_h_baseline,
+                                        h0=h0_base,
+                                        x=x,
+                                        hrth=h,
+                                        K=K,
+                                        K_baseline_x=K_baseline_x)
+    
+    heart_B, brain_B = _run_simulation(W_xh=rnn.W_xh,
+                                        W_hh_baseline=rnn.W_hh_baseline,
+                                        b_h_baseline=rnn.b_h_baseline,
+                                        h0=h0_pert,
+                                        x=x,
+                                        hrth=h,
+                                        K=K,
+                                        K_baseline_x=K_baseline_x)
+
+
+    # # === Brain time series filtering ====
+    # brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)
+
+
+    # # === Phase extraction ===
+    # heart_phase = analysis.instantaneous_phase(heart_time_series)
+    # brain_phase = analysis.instantaneous_phase(brain_slow)
+
+    # # === Coherence ===
+    # heart_phase_valid = analysis.discard_borders(heart_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    # brain_phase_valid = analysis.discard_borders(brain_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    # plv = analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
+    # print(f"PLV (k_hb={K_HB}) = {plv:.4f}")
+
+
+def _run_simulation(W_xh: np.ndarray, 
+                    W_hh_baseline: np.ndarray,
+                    b_h_baseline: np.ndarray,
+                    h0: np.ndarray,
+                    x: np.ndarray,
+                    oscillator: heart.Heart,
+                    K: np.ndarray,
+                    K_baseline_x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Run one coupled simulation from a given initial state.
+
+    Builds a fresh network from the given weights and ``h0``, and resets the
+    heart, so that repeated calls are independent: nothing carries over between
+    runs. Everything else is passed in and shared, so two calls differ *only* by
+    ``h0`` — which is the whole point of the invariance test.
+
+    Parameters
+    ----------
+    W_xh, W_hh_baseline, b_h_baseline : np.ndarray
+        The network's baseline weights, loaded once by the caller.
+    h0 : np.ndarray
+        Initial hidden state for this run.
+    x : np.ndarray
+        The fixed input vector.
+    oscillator : heart.Heart
+        The heart oscillator. Reset here, so the same instance can serve
+        several runs.
+    K : np.ndarray
+        The scaled coupling matrix, shape ``(N, 2)``.
+    K_baseline_x : np.ndarray
+        The unscaled coupling direction the state is projected onto.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        The heart signal ``x(t)`` and the network's projected signal ``s(t)``,
+        one value per step.
+    """
+
+    # Create the RNN for this simulation
+    rnn = brain.VanillaRNN.from_weights(W_xh=W_xh,
+                                        W_hh_baseline=W_hh_baseline,
+                                        b_h_baseline=b_h_baseline,
+                                        h0=h0)
+    rnn.scale_W_hh(g=G)
+
+    # Reset the heart state
+    oscillator.reset_state()
+
+    # Preparing output
     heart_time_series = np.zeros(N_STEPS)
     brain_time_series = np.zeros(N_STEPS)
 
@@ -99,33 +191,21 @@ def main():
     # We lose the last state; don't care on a high number of steps.
     for t in range(N_STEPS):
         
-        h_state = h.get_state()
+        hearth_state = oscillator.get_state()
 
         # "h_state[0]" beacuse "h_state := (x,y)".
-        heart_time_series[t] = h_state[0]
+        heart_time_series[t] = hearth_state[0]
         # s(t) = k_baseline_x @ b_state
         brain_time_series[t] = rnn.project_state_onto(direction=K_baseline_x)
 
         # Forward step of the system
-        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=h_state)
+        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=hearth_state)
         rnn.apply_bias_perturbation(perturbation)
         rnn.step(x=x)
-        h.step(sigma=SIGMA, dt=DT)
+        oscillator.step(sigma=SIGMA, dt=DT)
 
+    return (heart_time_series, brain_time_series)
 
-    # === Brain time series filtering ====
-    brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)
-
-
-    # === Phase extraction ===
-    heart_phase = analysis.instantaneous_phase(heart_time_series)
-    brain_phase = analysis.instantaneous_phase(brain_slow)
-
-    # === Coherence ===
-    heart_phase_valid = analysis.discard_borders(heart_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
-    brain_phase_valid = analysis.discard_borders(brain_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
-    plv = analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
-    print(f"PLV (k_hb={K_HB}) = {plv:.4f}")
 
 
 if __name__=="__main__":

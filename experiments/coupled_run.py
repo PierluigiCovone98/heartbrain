@@ -103,32 +103,34 @@ def main():
     
     # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_win", start=2000, end=3200)
     # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_03", start=2000, end=3200)
-    plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_05", start=2000, end=3200)
+    # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_05", start=2000, end=3200)
+    # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_1", start=2000, end=3200)
+    # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_2", start=2000, end=3200)
 
     # === Brain time series filtering ====
-    # brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)
+    brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)
 
     # Plotting2
-    # plotting.plot_time_series(heart_time_series, brain_slow, name="chaotic_coupled_run_10K_filtered1", start=2000, end=3200, brain_label="brain  s_slow(t)")
+    # plotting.plot_time_series(heart_time_series, brain_slow, name="chaotic_coupled_run_10K_khb_05_filtered1", start=2000, end=3200, brain_label="brain  s_slow(t)")
 
 
     # # === Phase extraction ===
-    # heart_phase = analysis.instantaneous_phase(heart_time_series)
-    # brain_phase = analysis.instantaneous_phase(brain_slow)
+    heart_phase = analysis.instantaneous_phase(heart_time_series)
+    brain_phase = analysis.instantaneous_phase(brain_slow)
 
     # Plotting3: the two instantaneous phases (sawtooth)
     # plotting.plot_time_series(heart_phase, brain_phase,
-    #                           name="coupled_run_10K_khb_05_phases1",
+    #                           name="chaotic_coupled_run_10K_khb_05_filtered1_phases1_zoomout",
     #                           start=2000, end=3200,
     #                           heart_label="phase heart",
     #                           brain_label="phase brain")
 
 
     # === Coherence ===
-    # heart_phase_valid = analysis.discard_borders(heart_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
-    # brain_phase_valid = analysis.discard_borders(brain_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
-    # plv = analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
-    # print(f"PLV (k_hb={K_HB}) = {plv:.4f}")
+    heart_phase_valid = analysis.discard_borders(heart_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    brain_phase_valid = analysis.discard_borders(brain_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    plv = analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
+    print(f"PLV (k_hb={K_HB}) = {plv:.4f}")
 
 
 if __name__=="__main__":

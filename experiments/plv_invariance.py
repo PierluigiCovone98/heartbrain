@@ -97,7 +97,7 @@ def main():
     # = 1. Prepare initial states
     h0_base = rnn.initial_state
     
-    h0_pert = h0_base.copy()
+    h0_pert = h0_base
     h0_pert[0] += STATE_PERTURBATION
 
 

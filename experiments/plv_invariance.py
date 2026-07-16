@@ -97,7 +97,7 @@ def main():
     # = 1. Prepare initial states
     h0_base = rnn.initial_state
     
-    h0_pert = h0_base
+    h0_pert = h0_base.copy()
     h0_pert[0] += STATE_PERTURBATION
 
 
@@ -198,7 +198,7 @@ def _run_simulation(W_xh: np.ndarray,
                                         b_h_baseline=b_h_baseline,
                                         h0=h0)
     rnn.scale_W_hh(g=G)
-
+    
     # Reset the heart state
     oscillator.reset_state()
 

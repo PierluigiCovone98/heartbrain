@@ -131,7 +131,7 @@ def main():
     signal_scale = np.mean(np.abs(brain_A_valid))
 
     print()
-    print(f"==== Divergence check (k_hb={K_HB}, perturbation={STATE_PERTURBATION:.0e}) ====")
+    print(f"==== Divergence check (k_hb={K_HB}, G={G}, perturbation={STATE_PERTURBATION:.0e}) ====")
     print(f"mean |s_A - s_B|     = {mean_abs_diff:.6f}")
     print(f"mean |s_A|  (scale)  = {signal_scale:.6f}")
     print(f"ratio diff/scale     = {mean_abs_diff / signal_scale:.4f}")

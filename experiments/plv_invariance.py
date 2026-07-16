@@ -51,7 +51,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.5
+K_HB = 0.0
 
 # === brain signal filtering
 CUTOFF_PERIOD = 100
@@ -100,6 +100,7 @@ def main():
     h0_pert = h0_base.copy()
     h0_pert[0] += STATE_PERTURBATION
 
+
     # = 2. Time series 
     heart_A, brain_A = _run_simulation(W_xh=rnn.W_xh,
                                         W_hh_baseline=rnn.W_hh_baseline,
@@ -118,6 +119,24 @@ def main():
                                         oscillator=h,
                                         K=K,
                                         K_baseline_x=K_baseline_x)
+
+    # === Check 1: did the trajectories actually diverge? ===
+    
+    # Pointwise comparison, so the window is taken first: no context to preserve.
+    brain_A_valid = analysis.discard_borders(brain_A, n_start=TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    brain_B_valid = analysis.discard_borders(brain_B, n_start=TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+
+    mean_abs_diff = np.mean(np.abs(brain_A_valid - brain_B_valid))
+    correlation = np.corrcoef(brain_A_valid, brain_B_valid)[0, 1]
+    signal_scale = np.mean(np.abs(brain_A_valid))
+
+    print()
+    print(f"==== Divergence check (k_hb={K_HB}, perturbation={STATE_PERTURBATION:.0e}) ====")
+    print(f"mean |s_A - s_B|     = {mean_abs_diff:.6f}")
+    print(f"mean |s_A|  (scale)  = {signal_scale:.6f}")
+    print(f"ratio diff/scale     = {mean_abs_diff / signal_scale:.4f}")
+    print(f"correlation(A, B)    = {correlation:.6f}")
+    
 
 
     # # === Brain time series filtering ====

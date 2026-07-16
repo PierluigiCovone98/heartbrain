@@ -27,7 +27,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.3
+K_HB = 0.5
 
 # === brain signal filtering
 CUTOFF_PERIOD = 100
@@ -102,7 +102,8 @@ def main():
     # plotting.plot_single_series(brain_time_series, "chaotic_coupled_run_10K_brain_zoom2",start=2000, end=2101)
     
     # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_win", start=2000, end=3200)
-    plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_03", start=2000, end=3200)
+    # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_03", start=2000, end=3200)
+    plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_khb_05", start=2000, end=3200)
 
     # === Brain time series filtering ====
     # brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)

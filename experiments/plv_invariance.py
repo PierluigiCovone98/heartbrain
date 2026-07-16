@@ -42,7 +42,7 @@ RNN_BASELINE_NAME = "gain_sweep_baseline"
 SEED2 = 54
 
 # === brain
-G = 2.1025
+G = 2.5
 STATE_PERTURBATION = 1e-13
 
 # === heart

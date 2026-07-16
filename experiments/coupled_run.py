@@ -97,10 +97,10 @@ def main():
         h.step(sigma=SIGMA, dt=DT)
 
     # Plotting1
-    plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K")
-    # plotting.plot_single_series(brain_time_series, "coupled_run_10K_brain_zoom1",start=2000, end=2601)
-    # plotting.plot_single_series(brain_time_series, "coupled_run_10K_brain_zoom2",start=2000, end=2101)
-    # plotting.plot_time_series(heart_time_series, brain_time_series, name="coupled_run_10K_khb_05", start=2000, end=3200)
+    # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K")
+    # plotting.plot_single_series(brain_time_series, "chaotic_coupled_run_10K_brain_zoom1",start=2000, end=2601)
+    # plotting.plot_single_series(brain_time_series, "chaotic_coupled_run_10K_brain_zoom2",start=2000, end=2101)
+    plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K_win", start=2000, end=3200)
 
 
     # === Brain time series filtering ====

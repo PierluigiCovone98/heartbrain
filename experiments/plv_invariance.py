@@ -42,7 +42,7 @@ RNN_BASELINE_NAME = "gain_sweep_baseline"
 SEED2 = 54
 
 # === brain
-G = 2.04
+G = 2.1025
 STATE_PERTURBATION = 1e-13
 
 # === heart
@@ -51,7 +51,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.5
+K_HB = 0.0
 
 # === brain signal filtering
 CUTOFF_PERIOD = 100

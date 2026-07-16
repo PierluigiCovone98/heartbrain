@@ -27,7 +27,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.5
+K_HB = 0.0
 
 # === brain signal filtering
 CUTOFF_PERIOD = 100

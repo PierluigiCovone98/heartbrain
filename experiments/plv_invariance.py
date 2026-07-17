@@ -23,8 +23,8 @@ regenerated here, and therefore the only place where a different call order coul
 silently change the setup.
 
 Before perturbing anything, the run is first reproduced *unperturbed* as a
-positive control: it must return the same PLV as ``coupled_run`` (0.9945 at
-k_hb=0.5, 0.0264 at k_hb=0). If it does not, this bench is not the same
+positive control: it must return the same PLV as ``coupled_run`` (0.9978 at
+k_hb=0.5, 0.0732 at k_hb=0). If it does not, this bench is not the same
 simulation, and nothing measured on it would be trustworthy.
 """
 import numpy as np
@@ -51,7 +51,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.0
+K_HB = 0.5
 
 # === brain signal filtering
 CUTOFF_PERIOD = 100
@@ -137,6 +137,29 @@ def main():
     print(f"ratio diff/scale     = {mean_abs_diff / signal_scale:.4f}")
     print(f"correlation(A, B)    = {correlation:.6f}")
     
+
+    # === Check 2: did the PLV survive? ===
+    #
+    # The heart phase is computed once, deliberately: the coupling is
+    # uni-directional (k_bh = 0), so the heart is untouched by the network and
+    # ``heart_A`` and ``heart_B`` are identical. Computing it twice would hide
+    # that independence behind a redundant call — the single call states it.
+    #
+    # Filter and Hilbert need the whole signal (they use surrounding context, so
+    # trimming first would only create fresh artifacts at the new borders). The
+    # window is therefore taken at the end of the chain, right before the PLV.
+    assert np.array_equal(heart_A, heart_B), "Heart differs between runs: coupling is not uni-directional."
+    heart_phase = analysis.instantaneous_phase(heart_A)
+
+    plv_A = _measure_plv(heart_phase, brain_A)
+    plv_B = _measure_plv(heart_phase, brain_B)
+
+    print()
+    print(f"==== PLV invariance check (k_hb={K_HB}, G={G}) ====")
+    print(f"PLV (unperturbed h0) = {plv_A:.6f}")
+    print(f"PLV (perturbed   h0) = {plv_B:.6f}")
+    print(f"|difference|         = {abs(plv_A - plv_B):.2e}")
+
 
 
     # # === Brain time series filtering ====
@@ -224,6 +247,23 @@ def _run_simulation(W_xh: np.ndarray,
         oscillator.step(sigma=SIGMA, dt=DT)
 
     return (heart_time_series, brain_time_series)
+
+
+def _measure_plv(heart_phase: np.ndarray, brain_series: np.ndarray) -> float:
+    """Measure the phase locking value between the heart and one brain run.
+
+    Applies the full measurement chain: low-pass (isolate the slow scale that
+    carries the locking), phase extraction, then the window — trimmed last,
+    since the transforms before it need the whole signal.
+    """
+    brain_slow = analysis.low_pass_filter(signal=brain_series, cutoff_period=CUTOFF_PERIOD)
+    brain_phase = analysis.instantaneous_phase(brain_slow)
+
+    n_start = TRANSIENT_STEPS + BORDER_STEPS
+    heart_phase_valid = analysis.discard_borders(heart_phase, n_start=n_start, n_end=BORDER_STEPS)
+    brain_phase_valid = analysis.discard_borders(brain_phase, n_start=n_start, n_end=BORDER_STEPS)
+
+    return analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
 
 
 if __name__=="__main__":

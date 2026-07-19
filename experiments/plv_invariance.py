@@ -65,7 +65,7 @@ def main():
 
     # === Vanilla RNN setup ===
     # We use ``rnn`` as a "baseline RNN" from where we take weight.
-    rnn = networks.load_network(RNN_BASELINE_NAME)
+    rnn_baseline = networks.load_network(RNN_BASELINE_NAME)
     print(f"OK - {RNN_BASELINE_NAME} network correctly loaded.")    # Log
 
 
@@ -74,11 +74,11 @@ def main():
     print(f"OK - {GAIN_SWEEP_EXP} experiment correctly loaded.")    # Log
 
     x = arrays["x"]
-    N = rnn.N
+    N = rnn_baseline.N
 
 
     # === Heart setup ===
-    h = heart.Heart()
+    oscillator = heart.Heart()
 
 
     # === Coupling Components ===
@@ -93,35 +93,46 @@ def main():
     K = coupling.build_K(k_hb=K_HB, K_baseline=K_baseline)
 
 
-    # === Trajectory Divergence check ===
-    # = 1. Prepare initial states
-    h0_base = rnn.initial_state
-    
+    # === Network setups ===
+    #
+    # = 1. RNN with "base h0".
+    h0_base = rnn_baseline.initial_state
+    rnn_h0_base = brain.VanillaRNN.from_weights(W_xh=rnn_baseline.W_xh,
+                                                W_hh_baseline=rnn_baseline.W_hh_baseline,
+                                                b_h_baseline=rnn_baseline.b_h_baseline,
+                                                h0=h0_base)
+    rnn_h0_base.scale_W_hh(g=G)
+
+    # = 2. RNN with (slightly) pertubated "h0"            
     h0_pert = h0_base.copy()
     h0_pert[0] += STATE_PERTURBATION
+    rnn_h0_pert = brain.VanillaRNN.from_weights(W_xh=rnn_baseline.W_xh,
+                                                W_hh_baseline=rnn_baseline.W_hh_baseline,
+                                                b_h_baseline=rnn_baseline.b_h_baseline,
+                                                h0=h0_pert)
+    rnn_h0_pert.scale_W_hh(g=G)
 
 
-    # = 2. Time series 
-    heart_A, brain_A = _run_simulation(W_xh=rnn.W_xh,
-                                        W_hh_baseline=rnn.W_hh_baseline,
-                                        b_h_baseline=rnn.b_h_baseline,
-                                        h0=h0_base,
-                                        x=x,
-                                        oscillator=h,
-                                        K=K,
-                                        K_baseline_x=K_baseline_x)
+    # === Trajectory Divergence check ===
+    #
+    # = Time series 
+    oscillator.reset_state()
+    heart_A, brain_A = _run_simulation(rnn=rnn_h0_base,
+                                       x=x,
+                                       oscillator=oscillator,
+                                       K=K,
+                                       K_baseline_x=K_baseline_x)
     
-    heart_B, brain_B = _run_simulation(W_xh=rnn.W_xh,
-                                        W_hh_baseline=rnn.W_hh_baseline,
-                                        b_h_baseline=rnn.b_h_baseline,
-                                        h0=h0_pert,
-                                        x=x,
-                                        oscillator=h,
-                                        K=K,
-                                        K_baseline_x=K_baseline_x)
+    oscillator.reset_state()
+    heart_B, brain_B = _run_simulation(rnn=rnn_h0_pert,
+                                       x=x,
+                                       oscillator=oscillator,
+                                       K=K,
+                                       K_baseline_x=K_baseline_x)
+
 
     # === Check 1: did the trajectories actually diverge? ===
-    
+    #     
     # Pointwise comparison, so the window is taken first: no context to preserve.
     brain_A_valid = analysis.discard_borders(brain_A, n_start=TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
     brain_B_valid = analysis.discard_borders(brain_B, n_start=TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
@@ -161,70 +172,45 @@ def main():
     print(f"|difference|         = {abs(plv_A - plv_B):.2e}")
 
 
-
-    # # === Brain time series filtering ====
-    # brain_slow = analysis.low_pass_filter(signal=brain_time_series, cutoff_period=CUTOFF_PERIOD)
-
-
-    # # === Phase extraction ===
-    # heart_phase = analysis.instantaneous_phase(heart_time_series)
-    # brain_phase = analysis.instantaneous_phase(brain_slow)
-
-    # # === Coherence ===
-    # heart_phase_valid = analysis.discard_borders(heart_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
-    # brain_phase_valid = analysis.discard_borders(brain_phase, n_start= TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
-    # plv = analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
-    # print(f"PLV (k_hb={K_HB}) = {plv:.4f}")
-
-
-def _run_simulation(W_xh: np.ndarray, 
-                    W_hh_baseline: np.ndarray,
-                    b_h_baseline: np.ndarray,
-                    h0: np.ndarray,
+def _run_simulation(rnn: brain.VanillaRNN,
                     x: np.ndarray,
                     oscillator: heart.Heart,
                     K: np.ndarray,
                     K_baseline_x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Run one coupled simulation from a given initial state.
+    """Run one heart -> brain coupled simulation, returning the two signals.
 
-    Builds a fresh network from the given weights and ``h0``, and resets the
-    heart, so that repeated calls are independent: nothing carries over between
-    runs. Everything else is passed in and shared, so two calls differ *only* by
-    ``h0`` — which is the whole point of the invariance test.
+    Advances the coupled system for ``n_steps``: at each step the heart state
+    perturbs the network bias (the directed heart -> brain coupling), then both
+    components step forward.
+
+    The function is a pure orchestrator: it does not build or reset its
+    components. The caller passes an ``rnn`` and an ``oscillator`` already in
+    their intended initial state (built, scaled, and reset as needed) and owns
+    everything that must vary between runs — which is what lets callers compare,
+    for instance, two networks differing only by ``h0``. Nothing carries over
+    between calls except through the objects the caller supplies.
 
     Parameters
     ----------
-    W_xh, W_hh_baseline, b_h_baseline : np.ndarray
-        The network's baseline weights, loaded once by the caller.
-    h0 : np.ndarray
-        Initial hidden state for this run.
+    rnn : brain.VanillaRNN
+        The network, already built and gain-scaled, in its initial state.
     x : np.ndarray
-        The fixed input vector.
+        The fixed input vector driving the network, shape ``(input_size,)``.
     oscillator : heart.Heart
-        The heart oscillator. Reset here, so the same instance can serve
-        several runs.
+        The heart oscillator, in its initial state.
     K : np.ndarray
-        The scaled coupling matrix, shape ``(N, 2)``.
+        The scaled coupling matrix ``k_hb * K_baseline``, shape ``(N, 2)``.
     K_baseline_x : np.ndarray
-        The unscaled coupling direction the state is projected onto.
+        The unscaled coupling direction the network state is projected onto to
+        produce the scalar signal ``s(t)``, shape ``(N,)``.
 
     Returns
     -------
     tuple[np.ndarray, np.ndarray]
-        The heart signal ``x(t)`` and the network's projected signal ``s(t)``,
-        one value per step.
+        ``(heart_series, brain_series)``: the heart signal ``x(t)`` and the
+        network's projected signal ``s(t)``, one value per step, of length
+        ``n_steps``.
     """
-
-    # Create the RNN for this simulation
-    rnn = brain.VanillaRNN.from_weights(W_xh=W_xh,
-                                        W_hh_baseline=W_hh_baseline,
-                                        b_h_baseline=b_h_baseline,
-                                        h0=h0)
-    rnn.scale_W_hh(g=G)
-    
-    # Reset the heart state
-    oscillator.reset_state()
-
     # Preparing output
     heart_time_series = np.zeros(N_STEPS)
     brain_time_series = np.zeros(N_STEPS)

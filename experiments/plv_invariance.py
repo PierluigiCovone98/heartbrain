@@ -29,7 +29,7 @@ simulation, and nothing measured on it would be trustworthy.
 """
 import numpy as np
 
-from heartbrain import brain, heart, coupling
+from heartbrain import brain, heart, coupling, coupled_system
 from heartbrain.infra import plotting, analysis
 from heartbrain.infra.persistence import networks, experiments
 
@@ -117,18 +117,24 @@ def main():
     #
     # = Time series 
     oscillator.reset_state()
-    heart_A, brain_A = _run_simulation(rnn=rnn_h0_base,
-                                       x=x,
-                                       oscillator=oscillator,
-                                       K=K,
-                                       K_baseline_x=K_baseline_x)
+    heart_A, brain_A = coupled_system.run_heart_to_brain(rnn=rnn_h0_base,
+                                                         oscillator=oscillator,
+                                                         x=x,
+                                                         K=K,
+                                                         K_baseline_x=K_baseline_x,
+                                                         n_steps=N_STEPS,
+                                                         dt=DT,
+                                                         sigma=SIGMA)
     
     oscillator.reset_state()
-    heart_B, brain_B = _run_simulation(rnn=rnn_h0_pert,
-                                       x=x,
-                                       oscillator=oscillator,
-                                       K=K,
-                                       K_baseline_x=K_baseline_x)
+    heart_B, brain_B = coupled_system.run_heart_to_brain(rnn=rnn_h0_pert,
+                                                         oscillator=oscillator,
+                                                         x=x,
+                                                         K=K,
+                                                         K_baseline_x=K_baseline_x,
+                                                         n_steps=N_STEPS,
+                                                         dt=DT,
+                                                         sigma=SIGMA)
 
 
     # === Check 1: did the trajectories actually diverge? ===
@@ -170,69 +176,6 @@ def main():
     print(f"PLV (unperturbed h0) = {plv_A:.6f}")
     print(f"PLV (perturbed   h0) = {plv_B:.6f}")
     print(f"|difference|         = {abs(plv_A - plv_B):.2e}")
-
-
-def _run_simulation(rnn: brain.VanillaRNN,
-                    x: np.ndarray,
-                    oscillator: heart.Heart,
-                    K: np.ndarray,
-                    K_baseline_x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Run one heart -> brain coupled simulation, returning the two signals.
-
-    Advances the coupled system for ``n_steps``: at each step the heart state
-    perturbs the network bias (the directed heart -> brain coupling), then both
-    components step forward.
-
-    The function is a pure orchestrator: it does not build or reset its
-    components. The caller passes an ``rnn`` and an ``oscillator`` already in
-    their intended initial state (built, scaled, and reset as needed) and owns
-    everything that must vary between runs — which is what lets callers compare,
-    for instance, two networks differing only by ``h0``. Nothing carries over
-    between calls except through the objects the caller supplies.
-
-    Parameters
-    ----------
-    rnn : brain.VanillaRNN
-        The network, already built and gain-scaled, in its initial state.
-    x : np.ndarray
-        The fixed input vector driving the network, shape ``(input_size,)``.
-    oscillator : heart.Heart
-        The heart oscillator, in its initial state.
-    K : np.ndarray
-        The scaled coupling matrix ``k_hb * K_baseline``, shape ``(N, 2)``.
-    K_baseline_x : np.ndarray
-        The unscaled coupling direction the network state is projected onto to
-        produce the scalar signal ``s(t)``, shape ``(N,)``.
-
-    Returns
-    -------
-    tuple[np.ndarray, np.ndarray]
-        ``(heart_series, brain_series)``: the heart signal ``x(t)`` and the
-        network's projected signal ``s(t)``, one value per step, of length
-        ``n_steps``.
-    """
-    # Preparing output
-    heart_time_series = np.zeros(N_STEPS)
-    brain_time_series = np.zeros(N_STEPS)
-
-    # Let's implement one actual interaction (directed).
-    # We lose the last state; don't care on a high number of steps.
-    for t in range(N_STEPS):
-        
-        hearth_state = oscillator.get_state()
-
-        # "h_state[0]" beacuse "h_state := (x,y)".
-        heart_time_series[t] = hearth_state[0]
-        # s(t) = k_baseline_x @ b_state
-        brain_time_series[t] = rnn.project_state_onto(direction=K_baseline_x)
-
-        # Forward step of the system
-        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=hearth_state)
-        rnn.apply_bias_perturbation(perturbation)
-        rnn.step(x=x)
-        oscillator.step(sigma=SIGMA, dt=DT)
-
-    return (heart_time_series, brain_time_series)
 
 
 def _measure_plv(heart_phase: np.ndarray, brain_series: np.ndarray) -> float:

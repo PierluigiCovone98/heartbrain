@@ -1,6 +1,6 @@
 """Coupled-system module.
 
-TODO: Modify this docstring when needed.
+TODO: expand when brain→heart is added.
 Orchestrates full simulations of the ``heart-brain`` coupled system over time. This
 sits one level above ``heartbrain/coupling``: where ``coupling`` provides the per-instant
 building blocks (how one signal is projected into the other at a single step),
@@ -79,19 +79,18 @@ def run_heart_to_brain(rnn: brain.VanillaRNN,
     heart_time_series = np.zeros(n_steps)
     brain_time_series = np.zeros(n_steps)
 
-    # Let's implement one actual interaction (directed).
     # We lose the last state; don't care on a high number of steps.
     for t in range(n_steps):
         
-        hearth_state = oscillator.get_state()
+        heart_state = oscillator.get_state()
 
         # "h_state[0]" beacuse "h_state := (x,y)".
-        heart_time_series[t] = hearth_state[0]
+        heart_time_series[t] = heart_state[0]
         # s(t) = k_baseline_x @ b_state
         brain_time_series[t] = rnn.project_state_onto(direction=K_baseline_x)
 
         # Forward step of the system
-        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=hearth_state)
+        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=heart_state)
         rnn.apply_bias_perturbation(perturbation)
         rnn.step(x=x)
         oscillator.step(sigma=sigma, dt=dt)

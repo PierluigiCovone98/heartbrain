@@ -4,7 +4,7 @@ More details later...
 """
 import numpy as np
 
-from heartbrain import brain, heart, coupling
+from heartbrain import brain, heart, coupling, coupled_system
 from heartbrain.infra import plotting, analysis
 from heartbrain.infra.persistence import networks, experiments
 
@@ -74,27 +74,14 @@ def main():
     K = coupling.build_K(k_hb=K_HB, K_baseline=K_baseline)
 
     # Temporal series: 
-    # pre-allocate memory such that we certainly know how
-    # many steps there are. 
-    heart_time_series = np.zeros(N_STEPS)
-    brain_time_series = np.zeros(N_STEPS)
-
-    # Let's implement one actual interaction (directed).
-    # We lose the last state; don't care on a high number of steps.
-    for t in range(N_STEPS):
-        
-        h_state = h.get_state()
-
-        # "h_state[0]" beacuse "h_state := (x,y)".
-        heart_time_series[t] = h_state[0]
-        # s(t) = k_baseline_x @ b_state
-        brain_time_series[t] = rnn.project_state_onto(direction=K_baseline_x)
-
-        # Forward step of the system
-        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=h_state)
-        rnn.apply_bias_perturbation(perturbation)
-        rnn.step(x=x)
-        h.step(sigma=SIGMA, dt=DT)
+    heart_time_series, brain_time_series = coupled_system.run_heart_to_brain(rnn=rnn,
+                                                                             oscillator=h,
+                                                                             x=x,
+                                                                             K=K,
+                                                                             K_baseline_x=K_baseline_x,
+                                                                             n_steps=N_STEPS,
+                                                                             dt=DT,
+                                                                             sigma=SIGMA)
 
     # Plotting1
     # plotting.plot_time_series(heart_time_series, brain_time_series, name="chaotic_coupled_run_10K")

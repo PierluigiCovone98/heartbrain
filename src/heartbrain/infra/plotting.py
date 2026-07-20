@@ -15,13 +15,13 @@ from heartbrain.infra import _paths
 
 
 # Constant
-_SUBDIR = "coupled"  # Output subdirectory for coupled-run figures.
 _EXTENSION = ".png"
 
 
 def plot_time_series(heart_series,
                      brain_series,
                      name: str,
+                     subdir : str,
                      start: int | None = None,
                      end: int | None = None,
                      heart_label: str = "heart  x(t)",
@@ -44,6 +44,8 @@ def plot_time_series(heart_series,
     name : str
         Bare file name (no directory, no extension). The figure is saved to
         ``output/coupled/<name>.png``.
+    subdir : str
+        Output subdirectory under ``output/`` (e.g. ``"sweep"``).
     start : int | None
         First step of the window (inclusive). ``None`` means from the beginning.
     end : int | None
@@ -92,7 +94,7 @@ def plot_time_series(heart_series,
     fig.tight_layout()
  
     # Resolve output path and ensure the directory exists.
-    out_dir = _paths.output_subdir(_SUBDIR)
+    out_dir = _paths.output_subdir(subdir)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / (name + _EXTENSION)
  
@@ -104,6 +106,7 @@ def plot_time_series(heart_series,
 
 def plot_single_series(series,
                        name: str,
+                       subdir: str,
                        start: int | None = None,
                        end: int | None = None,
                        label: str = "s(t)",
@@ -123,6 +126,8 @@ def plot_single_series(series,
     name : str
         Bare file name (no directory, no extension). Saved to
         ``output/coupled/<name>.png``.
+    subdir : str
+        Output subdirectory under ``output/`` (e.g. ``"sweep"``).
     start : int | None
         First step of the window (inclusive). ``None`` means from the beginning.
     end : int | None
@@ -151,7 +156,78 @@ def plot_single_series(series,
     fig.suptitle(name)
     fig.tight_layout()
  
-    out_dir = _paths.output_subdir(_SUBDIR)
+    out_dir = _paths.output_subdir(subdir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / (name + _EXTENSION)
+ 
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+ 
+    return path
+
+
+def plot_curve(x_values,
+               y_values,
+               name: str,
+               subdir: str,
+               x_label: str = "x",
+               y_label: str = "y",
+               color: str = "steelblue",
+               marker: str = "o") -> Path:
+    """Plot a single y-vs-x curve and save it to disk.
+ 
+    A general curve plotter: it draws ``y_values`` against ``x_values`` as a line
+    with markers. It carries no assumption about what the axes mean — the caller
+    labels them — so the same function serves any sweep result (e.g. a locking
+    value against coupling strength, a period against gain, and so on).
+ 
+    Markers are shown because sweep points are often unevenly spaced (denser
+    where the interesting transition is), and the markers make the actual
+    sampling visible rather than hidden inside a smooth line.
+ 
+    Parameters
+    ----------
+    x_values : array-like
+        The horizontal coordinates (e.g. the swept parameter).
+    y_values : array-like
+        The vertical coordinates (e.g. the measured quantity). Same length as
+        ``x_values``.
+    name : str
+        Bare file name (no directory, no extension). Saved to
+        ``output/<subdir>/<name>.png``.
+    subdir : str
+        Output subdirectory under ``output/`` (e.g. ``"sweep"``).
+    x_label, y_label : str
+        Axis labels.
+    color : str
+        Line and marker color.
+    marker : str
+        Marker style for the sampled points.
+ 
+    Returns
+    -------
+    Path
+        The path of the saved figure.
+ 
+    Raises
+    ------
+    ValueError
+        If the two coordinate arrays have different lengths.
+    """
+    if len(x_values) != len(y_values):
+        raise ValueError(
+            f"Length mismatch: x has {len(x_values)}, y has {len(y_values)}."
+        )
+ 
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(x_values, y_values, color=color, marker=marker, markersize=4, linewidth=1.0)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.grid(True, alpha=0.3)
+    fig.suptitle(name)
+    fig.tight_layout()
+ 
+    out_dir = _paths.output_subdir(subdir)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / (name + _EXTENSION)
  

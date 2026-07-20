@@ -148,6 +148,11 @@ class VanillaRNN:
         self._state = self._initial_state.copy()
 
 
+    def reset_bias(self) -> None:
+        """Restore the bias to its baseline, discarding any perturbation."""
+        self._b_h = self._b_h_baseline.copy()
+
+
     def project_state_onto(self, direction: np.ndarray) -> float:
         """Project the current state ``h(t)`` onto a direction, returning a scalar.
 

@@ -166,33 +166,24 @@ def main():
     # trimming first would only create fresh artifacts at the new borders). The
     # window is therefore taken at the end of the chain, right before the PLV.
     assert np.array_equal(heart_A, heart_B), "Heart differs between runs: coupling is not uni-directional."
-    heart_phase = analysis.instantaneous_phase(heart_A)
-
-    plv_A = _measure_plv(heart_phase, brain_A)
-    plv_B = _measure_plv(heart_phase, brain_B)
+    # heart_phase = analysis.instantaneous_phase(heart_A)
+     
+    plv_A = analysis.measure_plv(heart_series=heart_A,
+                                 brain_series=brain_A,
+                                 cutoff_period=CUTOFF_PERIOD,
+                                 transient_steps=TRANSIENT_STEPS,
+                                 border_steps=BORDER_STEPS)
+    plv_B = analysis.measure_plv(heart_series=heart_A,
+                                 brain_series=brain_B,
+                                 cutoff_period=CUTOFF_PERIOD,
+                                 transient_steps=TRANSIENT_STEPS,
+                                 border_steps=BORDER_STEPS)
 
     print()
     print(f"==== PLV invariance check (k_hb={K_HB}, G={G}) ====")
     print(f"PLV (unperturbed h0) = {plv_A:.6f}")
     print(f"PLV (perturbed   h0) = {plv_B:.6f}")
     print(f"|difference|         = {abs(plv_A - plv_B):.2e}")
-
-
-def _measure_plv(heart_phase: np.ndarray, brain_series: np.ndarray) -> float:
-    """Measure the phase locking value between the heart and one brain run.
-
-    Applies the full measurement chain: low-pass (isolate the slow scale that
-    carries the locking), phase extraction, then the window — trimmed last,
-    since the transforms before it need the whole signal.
-    """
-    brain_slow = analysis.low_pass_filter(signal=brain_series, cutoff_period=CUTOFF_PERIOD)
-    brain_phase = analysis.instantaneous_phase(brain_slow)
-
-    n_start = TRANSIENT_STEPS + BORDER_STEPS
-    heart_phase_valid = analysis.discard_borders(heart_phase, n_start=n_start, n_end=BORDER_STEPS)
-    brain_phase_valid = analysis.discard_borders(brain_phase, n_start=n_start, n_end=BORDER_STEPS)
-
-    return analysis.phase_locking_value(heart_phase_valid, brain_phase_valid)
 
 
 if __name__=="__main__":

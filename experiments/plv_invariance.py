@@ -30,7 +30,7 @@ simulation, and nothing measured on it would be trustworthy.
 import numpy as np
 
 from heartbrain import brain, heart, coupling, coupled_system
-from heartbrain.infra import plotting, analysis
+from heartbrain.infra import analysis
 from heartbrain.infra.persistence import networks, experiments
 
 

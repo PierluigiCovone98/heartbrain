@@ -63,8 +63,53 @@ def _center_on_zero(signal: np.ndarray) -> np.ndarray:
     ("bring to zero mean") independently of who needs it.
     """
     return signal - np.mean(signal)
- 
- 
+
+
+def measure_plv(heart_series: np.ndarray, brain_series: np.ndarray, 
+                cutoff_period: int, transient_steps: int, border_steps: int) -> float:
+    """Measure the phase locking value between the heart and brain signals.
+
+    The brain signal is low-pass filtered first, to isolate the slow scale that 
+    carries the locking (its fast chaotic component would spoil the phase); the 
+    heart signal is already slow and clean, so it goes straight to phase extraction. 
+    Both phases are then trimmed to the valid window — transient plus border at the
+    start, border at the end — before the locking value is computed.
+
+    The window is applied last: filtering and phase extraction need the whole
+    signal (they use surrounding context), so trimming earlier would only create
+    fresh artifacts at the new borders.
+
+    Parameters
+    ----------
+    heart_series : np.ndarray
+        The heart signal ``x(t)``, one value per step.
+    brain_series : np.ndarray
+        The network's projected signal ``s(t)``, one value per step.
+    cutoff_period : int
+        Low-pass cutoff for the brain signal, in steps.
+    transient_steps : int
+        Steps dropped at the start for the system's transient.
+    border_steps : int
+        Steps dropped at each end for filter/Hilbert border artifacts.
+
+    Returns
+    -------
+    float
+        The phase locking value in ``[0, 1]``: 0 no locking, 1 perfect locking.
+    """
+    heart_phase = instantaneous_phase(heart_series)
+
+    # Brain series needs to be pre-processed to become phase
+    brain_slow = low_pass_filter(signal=brain_series, cutoff_period=cutoff_period)
+    brain_phase = instantaneous_phase(brain_slow)
+
+    n_start = transient_steps + border_steps
+    heart_phase_valid = discard_borders(heart_phase, n_start=n_start, n_end=border_steps)
+    brain_phase_valid = discard_borders(brain_phase, n_start=n_start, n_end=border_steps)
+
+    return phase_locking_value(heart_phase_valid, brain_phase_valid)
+
+
 def instantaneous_phase(signal: np.ndarray) -> np.ndarray:
     """Instantaneous phase of an oscillating signal, via the Hilbert transform.
  

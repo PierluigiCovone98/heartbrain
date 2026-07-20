@@ -88,7 +88,7 @@ def _make_khb_values(k_max: float, n_points: int, density: float) -> np.ndarray:
 def main():
 
     # === Vanilla RNN setup ===
-    # We use ``rnn_baseline`` as a "baseline RNN" from where we take weights.
+    # We load the network from disk.
     rnn = networks.load_network(RNN_BASELINE_NAME)
     print(f"OK - {RNN_BASELINE_NAME} network correctly loaded.")    # Log
 

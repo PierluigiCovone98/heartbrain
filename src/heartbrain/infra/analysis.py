@@ -55,6 +55,47 @@ def low_pass_filter(signal: np.ndarray, cutoff_period: float) -> np.ndarray:
     return filtfilt(b, a, signal)
 
 
+def high_pass_filter(signal: np.ndarray, cutoff_period: float) -> np.ndarray:
+    """High-pass filter a signal, keeping components faster than a threshold.
+
+    The mirror of ``low_pass_filter``: components with period *shorter* than
+    ``cutoff_period`` (i.e. faster) pass through; longer (slower) ones are
+    removed. Same cutoff frequency as the low-pass (``1 / cutoff_period``), only
+    the kept side is flipped — so the *same* ``cutoff_period`` splits the signal
+    into complementary halves: the low-pass keeps the slow scale (the heart-locked
+    component), the high-pass keeps the fast one (the network's own dynamics).
+
+    Uses a Butterworth filter applied forward-and-backward (zero-phase), so the
+    output stays time-aligned with the input.
+
+    Note: zero-phase filtering can leave small artifacts at the very start and
+    end of the signal; callers should discard the borders before measuring.
+
+    Parameters
+    ----------
+    signal : np.ndarray
+        The 1-D signal to filter, one sample per step.
+    cutoff_period : float
+        Threshold period in steps. Components faster than this are kept; slower
+        ones removed. Choose it in the gap between the two scales (the same value
+        used for the low-pass).
+
+    Returns
+    -------
+    np.ndarray
+        The filtered signal, same length as the input, time-aligned with it.
+    """
+    # Sampling rate is one sample per step, so Nyquist (the max representable
+    # frequency) is 0.5 cycles/step. Filter cutoff frequency is 1 / period.
+    nyquist = 0.5
+    cutoff_freq = 1.0 / cutoff_period
+    normalized_cutoff = cutoff_freq / nyquist
+
+    # Design the Butterworth high-pass and apply it forward-and-backward.
+    b, a = butter(N=_FILTER_ORDER, Wn=normalized_cutoff, btype="high")  # type: ignore[misc]
+    return filtfilt(b, a, signal)
+
+
 def _center_on_zero(signal: np.ndarray) -> np.ndarray:
     """Subtract the mean so the signal oscillates around zero.
  

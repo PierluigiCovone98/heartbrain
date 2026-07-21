@@ -52,8 +52,8 @@ TRANSIENT_STEPS = 1000
 BORDER_STEPS = 500
 
 # === sweep
-K_MAX = 0.1
-N_POINTS = 107
+K_MAX = 2.0
+N_POINTS = 51
 DENSITY = 2.0            # sinh warp: larger = denser near zero
 SWEEP_SUBDIR = "sweep"
 
@@ -108,9 +108,7 @@ def main():
     # === Network setup ===
     rnn.scale_W_hh(g=G)
 
-    # Temp Invariance test
-    rnn._initial_state[0] += 1e-13
-    
+
     # === Coupling components ===
     coupled_rng = np.random.default_rng(SEED2)
     K_baseline = coupling.create_K_baseline(rng=coupled_rng, N=N, fan_in=2)
@@ -152,7 +150,7 @@ def main():
     # === Plot the curve ===
     path = plotting.plot_curve(x_values=khb_values,
                                y_values=plv_values,
-                               name="khb_sweep_kmax010_npoints107_h0pert",
+                               name="khb_sweep",
                                subdir=SWEEP_SUBDIR,
                                x_label="k_hb",
                                y_label="PLV")

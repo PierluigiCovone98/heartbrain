@@ -5,7 +5,7 @@ More details later...
 import numpy as np
 
 from heartbrain import heart, coupling, coupled_system
-from heartbrain.infra import analysis
+from heartbrain.infra import analysis, plotting
 from heartbrain.infra.persistence import networks, experiments
 
 
@@ -27,7 +27,7 @@ SIGMA = 0.0
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.5
+K_HB = 1.0
 SUBDIR = "coupled"
 
 # === brain signal filtering
@@ -91,6 +91,19 @@ def main():
                                transient_steps=TRANSIENT_STEPS,
                                border_steps=BORDER_STEPS)
     print(f"PLV (k_hb={K_HB}) = {plv:.4f}")
+
+
+    # Temporary experiment extention: looking for intermittence in the network fast component
+    brain_fast = analysis.high_pass_filter(brain_time_series, cutoff_period=CUTOFF_PERIOD)
+
+    plotting.plot_time_series(heart_time_series, brain_fast,
+                          name="chaotic_coupled_khb_1_fast_zoom", subdir="coupled",
+                          start=2000, end=3200,
+                          brain_label="brain fast (high-pass)")
+    plotting.plot_time_series(heart_time_series, brain_fast,
+                          name="chaotic_coupled_khb_1_fast_zoomout", subdir="coupled",
+                          start=2000, end=7000,
+                          brain_label="brain fast (high-pass)")
 
 
 if __name__=="__main__":

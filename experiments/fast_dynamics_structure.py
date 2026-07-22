@@ -95,21 +95,28 @@ def main():
     amplitude = analysis.instantaneous_amplitude(brain_fast)
 
     # trim borders (Hilbert + filter artifacts) BEFORE resolving
-    n_start = TRANSIENT_STEPS + BORDER_STEPS
-    heart_phase = analysis.discard_borders(heart_phase, n_start=n_start, n_end=BORDER_STEPS)
-    amplitude   = analysis.discard_borders(amplitude,   n_start=n_start, n_end=BORDER_STEPS)
+    heart_phase = analysis.discard_borders(heart_phase, n_start=TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    amplitude   = analysis.discard_borders(amplitude,   n_start=TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
 
     amp_mean, amp_std = analysis.resolve_by_phase(amplitude, heart_phase, n_bins=N_BINS)
 
+    # Resolve the heart's own x(t) by phase too, as a readable reference: it maps
+    # each abstract phase value back to where it sits in the heartbeat.
+    heart_valid = analysis.discard_borders(heart_series, n_start=TRANSIENT_STEPS + BORDER_STEPS, n_end=BORDER_STEPS)
+    heart_by_phase, _ = analysis.resolve_by_phase(heart_valid, heart_phase, n_bins=N_BINS)
+    
+    
     # Phase-bin centers for the x-axis: midpoint of each [-pi, pi] bin.
     bin_centers = _phase_bin_centers(n_bins=N_BINS)
 
-    plotting.plot_curve(x_values=bin_centers,
-                        y_values=amp_mean,
-                        name="fast_amplitude_by_phase_khb_1",
-                        subdir=SUBDIR,
-                        x_label="heart phase (rad)",
-                        y_label="fast amplitude (mean)")
+    plotting.plot_two_panels(x_values=bin_centers,
+                             top_values=heart_by_phase,
+                             bottom_values=amp_mean,
+                             name="fast_amplitude_by_phase_khb_1_twopanels",
+                             subdir=SUBDIR,
+                             x_label="heart phase (rad)",
+                             top_label="heart x (mean)",
+                             bottom_label="fast amplitude (mean)")
 
 
 def _phase_bin_centers(n_bins: int) -> np.ndarray:

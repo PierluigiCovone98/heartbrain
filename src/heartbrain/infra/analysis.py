@@ -186,6 +186,34 @@ def instantaneous_phase(signal: np.ndarray) -> np.ndarray:
     return np.angle(analytic) 
 
 
+def instantaneous_amplitude(signal: np.ndarray) -> np.ndarray:
+    """Instantaneous amplitude (envelope) of an oscillating signal, via Hilbert.
+
+    The companion of ``instantaneous_phase``: both read the analytic signal
+    built by the Hilbert transform, which represents the signal as a point
+    rotating in the plane. The phase is that point's angle; the amplitude is its
+    distance from the origin — the envelope that bounds the oscillation, i.e. how
+    widely the signal is swinging at each instant.
+
+    Unlike the phase, the amplitude does not require the signal to be centered on
+    zero, so no centering is done here.
+
+    Parameters
+    ----------
+    signal : np.ndarray
+        The 1-D oscillating signal, one sample per step. Expected to be
+        band-limited (e.g. the high-pass-filtered fast component).
+
+    Returns
+    -------
+    np.ndarray
+        The instantaneous amplitude (envelope), non-negative, same length as the
+        input.
+    """
+    analytic: np.ndarray = hilbert(signal)  # type: ignore[assignment]
+    return np.abs(analytic)
+
+
 def discard_borders(series: np.ndarray, n_start: int, n_end: int) -> np.ndarray:
     """Drop samples from the start and the end of a time series.
  

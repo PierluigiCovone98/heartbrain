@@ -109,13 +109,22 @@ def main():
     # Phase-bin centers for the x-axis: midpoint of each [-pi, pi] bin.
     bin_centers = _phase_bin_centers(n_bins=N_BINS)
 
+    # plotting.plot_two_panels(x_values=bin_centers,
+    #                          top_values=heart_by_phase,
+    #                          bottom_values=amp_mean,
+    #                          name="fast_amplitude_by_phase_khb_1_twopanels",
+    #                          subdir=SUBDIR,
+    #                          x_label="heart phase (rad)",
+    #                          top_label="heart x (mean)",
+    #                          bottom_label="fast amplitude (mean)")
+
     plotting.plot_two_panels(x_values=bin_centers,
-                             top_values=heart_by_phase,
+                             top_values=amp_std,
                              bottom_values=amp_mean,
-                             name="fast_amplitude_by_phase_khb_1_twopanels",
+                             name="fast_amp_std_vs_amp_mean_by_phase_khb_1",
                              subdir=SUBDIR,
                              x_label="heart phase (rad)",
-                             top_label="heart x (mean)",
+                             top_label="fast amplitude (std)",
                              bottom_label="fast amplitude (mean)")
 
 

@@ -366,4 +366,3 @@ def resolve_by_phase(quantity: np.ndarray,
             std_per_bin[b] = np.std(values_in_bin)
  
     return mean_per_bin, std_per_bin
- 

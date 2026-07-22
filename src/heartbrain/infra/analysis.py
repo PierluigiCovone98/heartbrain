@@ -306,3 +306,64 @@ def phase_locking_value(phase_a: np.ndarray, phase_b: np.ndarray) -> float:
     unit_arrows = np.exp(1j * phase_difference)
  
     return np.abs(np.mean(unit_arrows)).item()
+
+
+def resolve_by_phase(quantity: np.ndarray,
+                     phase: np.ndarray,
+                     n_bins: int) -> tuple[np.ndarray, np.ndarray]:
+    """Resolve an instantaneous quantity as a function of cyclic phase.
+ 
+    Groups the samples by *where they fall in the cycle*: the phase range
+    ``[-π, π]`` is split into ``n_bins`` equal bins, and every sample is assigned
+    to the bin its phase lands in. This overlays all cycles onto a single one,
+    aligned by phase — so the systematic pattern within a cycle emerges while the
+    per-cycle noise averages out (many turns of the clock stacked on top of each
+    other).
+ 
+    For each bin it returns both the mean of the quantity (its typical value at
+    that phase) and the standard deviation within the bin (how much it varies at
+    that phase across the different cycles). The spread is cheap to compute and
+    is a first hint of whether the quantity's value at a given phase is stable or
+    changes cycle to cycle.
+ 
+    Generic by design: it does not know what ``quantity`` is (an amplitude, a
+    chaoticity score, anything instantaneous), so the same function serves any
+    per-phase resolution.
+ 
+    Parameters
+    ----------
+    quantity : np.ndarray
+        The instantaneous quantity to resolve, one value per step.
+    phase : np.ndarray
+        The instantaneous cyclic phase in ``[-π, π]``, same length as
+        ``quantity`` (e.g. the heart phase from ``instantaneous_phase``).
+    n_bins : int
+        Number of equal phase bins to split the cycle into.
+ 
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        ``(mean_per_bin, std_per_bin)``, each of length ``n_bins``. Bins that
+        receive no samples are ``NaN`` (no data, rather than an invented value).
+    """
+    if len(quantity) != len(phase):
+        raise ValueError(
+            f"Length mismatch: quantity has {len(quantity)}, phase has {len(phase)}."
+        )
+ 
+    edges = np.linspace(-np.pi, np.pi, n_bins + 1)
+    # Assign each phase to a bin; digitize returns 1..n_bins, shift to 0..n_bins-1.
+    bin_index = np.digitize(phase, edges) - 1
+    # The rightmost edge (phase == +pi) would land in bin n_bins; fold it back in.
+    bin_index = np.clip(bin_index, 0, n_bins - 1)
+ 
+    mean_per_bin = np.full(n_bins, np.nan)
+    std_per_bin = np.full(n_bins, np.nan)
+    for b in range(n_bins):
+        values_in_bin = quantity[bin_index == b]
+        if values_in_bin.size > 0:
+            mean_per_bin[b] = np.mean(values_in_bin)
+            std_per_bin[b] = np.std(values_in_bin)
+ 
+    return mean_per_bin, std_per_bin
+ 

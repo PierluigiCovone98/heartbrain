@@ -235,3 +235,83 @@ def plot_curve(x_values,
     plt.close(fig)
  
     return path
+
+
+def plot_two_panels(x_values,
+                    top_values,
+                    bottom_values,
+                    name: str,
+                    subdir: str,
+                    x_label: str = "x",
+                    top_label: str = "top",
+                    bottom_label: str = "bottom",
+                    top_color: str = "crimson",
+                    bottom_color: str = "steelblue",
+                    marker: str = "o") -> Path:
+    """Plot two quantities against a shared x-axis, as two stacked panels.
+
+    A generic two-panel plotter: the panels share the x-axis but keep
+    independent y-axes, so two quantities on different scales can be compared
+    point by point. It assumes nothing about what the axes mean — the caller
+    labels them — so it serves any shared-x comparison (e.g. a reference signal
+    and a measured quantity, both resolved over the same phase bins).
+
+    Parameters
+    ----------
+    x_values : array-like
+        The shared horizontal coordinates.
+    top_values, bottom_values : array-like
+        The quantities for the top and bottom panels. Same length as
+        ``x_values``.
+    name : str
+        Bare file name (no directory, no extension). Saved to
+        ``output/<subdir>/<name>.png``.
+    subdir : str
+        Output subdirectory under ``output/``.
+    x_label : str
+        Shared x-axis label.
+    top_label, bottom_label : str
+        Y-axis labels for the two panels.
+    top_color, bottom_color : str
+        Line/marker colors.
+    marker : str
+        Marker style.
+
+    Returns
+    -------
+    Path
+        The path of the saved figure.
+
+    Raises
+    ------
+    ValueError
+        If the arrays have different lengths.
+    """
+    if not (len(x_values) == len(top_values) == len(bottom_values)):
+        raise ValueError(
+            f"Length mismatch: x={len(x_values)}, top={len(top_values)}, "
+            f"bottom={len(bottom_values)}."
+        )
+
+    fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, figsize=(10, 6))
+
+    ax_top.plot(x_values, top_values, color=top_color, marker=marker, markersize=4, linewidth=1.0)
+    ax_top.set_ylabel(top_label)
+    ax_top.grid(True, alpha=0.3)
+
+    ax_bottom.plot(x_values, bottom_values, color=bottom_color, marker=marker, markersize=4, linewidth=1.0)
+    ax_bottom.set_ylabel(bottom_label)
+    ax_bottom.set_xlabel(x_label)
+    ax_bottom.grid(True, alpha=0.3)
+
+    fig.suptitle(name)
+    fig.tight_layout()
+
+    out_dir = _paths.output_subdir(subdir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / (name + _EXTENSION)
+
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+    return path

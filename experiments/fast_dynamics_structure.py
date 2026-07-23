@@ -26,7 +26,7 @@ DT = 0.01
 SIGMA = 0.0
 
 # === coupled
-N_STEPS = 10000
+N_STEPS = 50000
 K_HB = 1.0
 SUBDIR = "structure"
 
@@ -121,7 +121,7 @@ def main():
     plotting.plot_two_panels(x_values=bin_centers,
                              top_values=amp_std,
                              bottom_values=amp_mean,
-                             name="fast_amp_std_vs_amp_mean_by_phase_khb_1",
+                             name="fast_amp_std_vs_amp_mean_by_phase_khb_1_nsteps_50k",
                              subdir=SUBDIR,
                              x_label="heart phase (rad)",
                              top_label="fast amplitude (std)",

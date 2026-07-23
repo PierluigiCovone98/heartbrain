@@ -40,6 +40,11 @@ BORDER_STEPS = 500
 # === resolve by phase
 N_BINS = 36
 
+# === reproducibility by phase
+N_WINDOWS = 18
+WINDOW_LENGTH = 33
+NULL_SEED = 99
+
 
 def main():
 
@@ -109,23 +114,44 @@ def main():
     # Phase-bin centers for the x-axis: midpoint of each [-pi, pi] bin.
     bin_centers = _phase_bin_centers(n_bins=N_BINS)
 
-    # plotting.plot_two_panels(x_values=bin_centers,
-    #                          top_values=heart_by_phase,
-    #                          bottom_values=amp_mean,
-    #                          name="fast_amplitude_by_phase_khb_1_twopanels",
-    #                          subdir=SUBDIR,
-    #                          x_label="heart phase (rad)",
-    #                          top_label="heart x (mean)",
-    #                          bottom_label="fast amplitude (mean)")
 
-    plotting.plot_two_panels(x_values=bin_centers,
-                             top_values=amp_std,
-                             bottom_values=amp_mean,
-                             name="fast_amp_std_vs_amp_mean_by_phase_khb_1_nsteps_50k",
+    # === Reproducibility by phase ===
+    # For each sampled phase, collect one window per cycle and ask how much the
+    # window repeats from one cycle to the next. The null control correlates
+    # randomly chosen, non-adjacent cycles: if it matches the consecutive value,
+    # what is measured is not cycle-to-cycle continuity but a stability holding
+    # across the whole run.
+    brain_fast_valid = analysis.discard_borders(brain_fast,
+                                                n_start=TRANSIENT_STEPS + BORDER_STEPS,
+                                                n_end=BORDER_STEPS)
+
+    window_phases = _phase_bin_centers(n_bins=N_WINDOWS)
+    reproducibility = np.zeros(N_WINDOWS)
+    reproducibility_null = np.zeros(N_WINDOWS)
+    null_rng = np.random.default_rng(NULL_SEED)
+
+    for i, target_phase in enumerate(window_phases):
+        windows = analysis.extract_windows_at_phase(signal=brain_fast_valid,
+                                                    phase=heart_phase,
+                                                    target_phase=target_phase,
+                                                    window_length=WINDOW_LENGTH)
+
+        reproducibility[i], reproducibility_null[i] = analysis.cycle_reproducibility(
+            windows=windows,
+            rng=null_rng,
+        )
+
+        print(f"phase = {target_phase:+.3f}   B = {reproducibility[i]:.3f}   "
+              f"B_null = {reproducibility_null[i]:.3f}   n_windows = {windows.shape[0]}")    # Log
+    
+    plotting.plot_two_panels(x_values=window_phases,
+                             top_values=reproducibility,
+                             bottom_values=reproducibility_null,
+                             name="fast_reproducibility_by_phase_khb_1",
                              subdir=SUBDIR,
                              x_label="heart phase (rad)",
-                             top_label="fast amplitude (std)",
-                             bottom_label="fast amplitude (mean)")
+                             top_label="B (consecutive cycles)",
+                             bottom_label="B (null: random cycles)")
 
 
 def _phase_bin_centers(n_bins: int) -> np.ndarray:

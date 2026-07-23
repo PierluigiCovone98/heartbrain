@@ -141,17 +141,30 @@ def main():
             rng=null_rng,
         )
 
-        print(f"phase = {target_phase:+.3f}   B = {reproducibility[i]:.3f}   "
-              f"B_null = {reproducibility_null[i]:.3f}   n_windows = {windows.shape[0]}")    # Log
+        # print(f"phase = {target_phase:+.3f}   B = {reproducibility[i]:.3f}   "
+        #       f"B_null = {reproducibility_null[i]:.3f}   n_windows = {windows.shape[0]}")    # Log
     
+    # plotting.plot_two_panels(x_values=window_phases,
+    #                          top_values=reproducibility,
+    #                          bottom_values=reproducibility_null,
+    #                          name="fast_reproducibility_by_phase_khb_1",
+    #                          subdir=SUBDIR,
+    #                          x_label="heart phase (rad)",
+    #                          top_label="B (consecutive cycles)",
+    #                          bottom_label="B (null: random cycles)")
+
+    # Amplitude resolved at the same resolution as B, so the two can be compared
+    # bin by bin on a shared axis.
+    amp_mean_18, _ = analysis.resolve_by_phase(amplitude, heart_phase, n_bins=N_WINDOWS)
+
     plotting.plot_two_panels(x_values=window_phases,
                              top_values=reproducibility,
-                             bottom_values=reproducibility_null,
-                             name="fast_reproducibility_by_phase_khb_1",
+                             bottom_values=amp_mean_18,
+                             name="fast_reproducibility_vs_amplitude_by_phase_khb_1",
                              subdir=SUBDIR,
                              x_label="heart phase (rad)",
-                             top_label="B (consecutive cycles)",
-                             bottom_label="B (null: random cycles)")
+                             top_label="B (reproducibility)",
+                             bottom_label="fast amplitude (mean)")
 
 
 def _phase_bin_centers(n_bins: int) -> np.ndarray:

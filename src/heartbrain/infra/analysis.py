@@ -421,3 +421,76 @@ def extract_windows_at_phase(signal: np.ndarray,
         return np.empty((0, window_length))
 
     return np.array(windows)
+
+
+def cycle_reproducibility(windows: np.ndarray,
+                          rng: np.random.Generator | None = None,
+                          n_null: int | None = None) -> tuple[float, float]:
+    """How much a window repeats from one cycle to the next, at a fixed phase.
+
+    Takes the windows extracted at one phase (one row per cycle, in time order)
+    and correlates each row with the next. High values mean the dynamics does the
+    *same thing* at that phase every cycle — reproducible; low values mean each
+    cycle produces a different shape — not reproducible.
+
+    Correlation is used because it is blind to amplitude: two windows of the same
+    shape but different size still correlate at 1. This keeps the measure about
+    the *repeatability of the form*, not about how large the swing is — which is
+    what the amplitude already measures.
+
+    A null control is available: correlating *randomly chosen, non-adjacent*
+    pairs of cycles. If the consecutive value is no higher than the null, then
+    what is being measured is not cycle-to-cycle continuity but a stability that
+    holds across the whole run (or, if both are ~0, nothing at all).
+
+    Parameters
+    ----------
+    windows : np.ndarray
+        Shape ``(n_cycles, window_length)``, from ``extract_windows_at_phase``.
+        Rows must be in time order.
+    rng : np.random.Generator | None
+        If given, also compute the null control with this generator.
+    n_null : int | None
+        Number of random pairs for the null. Defaults to the number of
+        consecutive pairs, so the two estimates rest on comparable samples.
+
+    Returns
+    -------
+    tuple[float, float]
+        ``(consecutive, null)``. ``null`` is ``NaN`` when ``rng`` is not given.
+        Both are ``NaN`` if there are fewer than two windows.
+    """
+    n_cycles = windows.shape[0]
+    if n_cycles < 2:
+        return (np.nan, np.nan)
+
+    consecutive_values = [
+        _correlation(windows[i], windows[i + 1]) for i in range(n_cycles - 1)
+    ]
+    consecutive_values = [c for c in consecutive_values if not np.isnan(c)]
+    consecutive = float(np.mean(consecutive_values)) if consecutive_values else np.nan
+
+    null = np.nan
+    if rng is not None:
+        n_pairs = n_null if n_null is not None else (n_cycles - 1)
+        null_values = []
+        for _ in range(n_pairs):
+            i, j = rng.integers(0, n_cycles, size=2)
+            if abs(int(i) - int(j)) < 2:   # skip adjacent (and self) pairs
+                continue
+            c = _correlation(windows[i], windows[j])
+            if not np.isnan(c):
+                null_values.append(c)
+        null = float(np.mean(null_values)) if null_values else np.nan
+
+    return (consecutive, null)
+
+
+def _correlation(a: np.ndarray, b: np.ndarray) -> float:
+    """Pearson correlation between two equal-length segments; NaN if either is flat."""
+    a_centered = a - a.mean()
+    b_centered = b - b.mean()
+    std_a, std_b = np.std(a_centered), np.std(b_centered)
+    if std_a < 1e-12 or std_b < 1e-12:
+        return np.nan
+    return float(np.mean(a_centered * b_centered) / (std_a * std_b))

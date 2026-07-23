@@ -366,3 +366,58 @@ def resolve_by_phase(quantity: np.ndarray,
             std_per_bin[b] = np.std(values_in_bin)
  
     return mean_per_bin, std_per_bin
+
+
+def extract_windows_at_phase(signal: np.ndarray,
+                             phase: np.ndarray,
+                             target_phase: float,
+                             window_length: int) -> np.ndarray:
+    """Extract one window of ``signal`` per cycle, at a fixed point of the cycle.
+
+    Finds every instant where ``phase`` passes through ``target_phase`` — one per
+    cycle — and cuts a window of ``signal`` centered on each. The result is the
+    *same position of the cycle*, sampled once per cycle.
+
+    Locating the windows through the phase itself, rather than by stepping a
+    fixed period, keeps them aligned even if the cycle length is not an exact
+    number of steps or drifts: the phase is the cycle's own clock.
+
+    Windows that would fall outside the signal (at the very start or end) are
+    dropped, so the number returned may be one fewer than the number of cycles.
+
+    Parameters
+    ----------
+    signal : np.ndarray
+        The signal to cut windows from (e.g. the high-pass-filtered fast
+        component), one value per step.
+    phase : np.ndarray
+        The cyclic phase in ``[-π, π]``, same length as ``signal`` (e.g. the
+        heart phase).
+    target_phase : float
+        The point of the cycle to sample, in radians.
+    window_length : int
+        Number of steps per window.
+
+    Returns
+    -------
+    np.ndarray
+        Shape ``(n_cycles, window_length)``: one row per cycle, ordered in time,
+        so consecutive rows are the same phase in consecutive cycles.
+    """
+    half = window_length // 2
+
+    # Re-center the phase on the target: the crossings we want are where this
+    # goes from negative to positive (wrapping handled by the complex form).
+    shifted = np.angle(np.exp(1j * (phase - target_phase)))
+    crossings = np.where((shifted[:-1] < 0) & (shifted[1:] >= 0))[0] + 1
+
+    windows = [
+        signal[c - half: c - half + window_length]
+        for c in crossings
+        if c - half >= 0 and c - half + window_length <= len(signal)
+    ]
+
+    if not windows:
+        return np.empty((0, window_length))
+
+    return np.array(windows)

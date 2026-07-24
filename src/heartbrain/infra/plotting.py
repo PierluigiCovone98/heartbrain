@@ -315,3 +315,64 @@ def plot_two_panels(x_values,
     plt.close(fig)
 
     return path
+
+
+def plot_scatter(x_values,
+                 y_values,
+                 name: str,
+                 subdir: str,
+                 x_label: str = "x",
+                 y_label: str = "y",
+                 color: str = "steelblue") -> Path:
+    """Scatter one quantity against another, one point per pair.
+
+    Unlike ``plot_curve``, points are not connected: the shape of the cloud is
+    the message. Used to see the relationship between two measures — a formless
+    cloud means they are independent, a curve means one predicts the other,
+    including nonlinear links that a correlation coefficient would miss.
+
+    Parameters
+    ----------
+    x_values, y_values : array-like
+        The paired coordinates, same length.
+    name : str
+        Bare file name (no directory, no extension). Saved to
+        ``output/<subdir>/<name>.png``.
+    subdir : str
+        Output subdirectory under ``output/``.
+    x_label, y_label : str
+        Axis labels.
+    color : str
+        Marker color.
+
+    Returns
+    -------
+    Path
+        The path of the saved figure.
+
+    Raises
+    ------
+    ValueError
+        If the two arrays have different lengths.
+    """
+    if len(x_values) != len(y_values):
+        raise ValueError(
+            f"Length mismatch: x has {len(x_values)}, y has {len(y_values)}."
+        )
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.scatter(x_values, y_values, color=color, s=12, alpha=0.6)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.grid(True, alpha=0.3)
+    fig.suptitle(name)
+    fig.tight_layout()
+
+    out_dir = _paths.output_subdir(subdir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / (name + _EXTENSION)
+
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+    return path

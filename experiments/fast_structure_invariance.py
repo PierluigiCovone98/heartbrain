@@ -1,4 +1,4 @@
-"""Are ``amplitude by phase`` and ``reproducibility by phase`` structural invariant?
+"""Are ``amplitude by phase`` and ``reproducibility by phase`` structural invariants?
 
 This experiment is designed to state if the two directions of the ``second axis`` are
 invariant as the ``PLV``. 
@@ -35,9 +35,6 @@ CUTOFF_PERIOD = 100
 # === measurement window
 TRANSIENT_STEPS = 1000
 BORDER_STEPS = 500
-
-# === resolve by phase
-N_BINS = 36
 
 # === reproducibility by phase
 N_WINDOWS = 18

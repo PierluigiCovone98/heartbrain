@@ -82,3 +82,36 @@ def heart_to_brain_bias_perturbation(K: np.ndarray, heart_state: tuple[float, fl
         The bias perturbation, shape ``(N,)``.
     """
     return K @ np.array(heart_state)
+
+
+def create_D_baseline(rng: np.random.Generator, N: int) -> np.ndarray:
+    """Create the fixed random direction the brain state is projected onto for
+    the brain->heart coupling.
+
+    This is the N->1 projection that turns the network state into the single scalar
+    the heart receives (``sigma = D · h``).
+
+    The scale is ``1/sqrt(N)``: ``sigma`` is a sum of N random terms, which would grow
+    like sqrt(N) with the dimension; normalizing by ``1/sqrt(N)`` keeps the projection
+    magnitude controlled regardless of network size.
+
+    This direction must be **independent** of ``K_baseline_x`` (the heart->brain
+    channel): the two coupling directions are physically distinct pathways
+    (afferent vs efferent), and sharing one would couple the two channels by
+    construction, making it impossible to attribute a bidirectional effect to the
+    interaction rather than to the overlap.
+
+    Parameters
+    ----------
+    rng : np.random.Generator
+        Random generator. Use a seed distinct from the one behind
+        ``K_baseline``, to keep the two channels independent.
+    N : int
+        Number of network units (the dimension of the brain state).
+
+    Returns
+    -------
+    np.ndarray
+        The projection direction, shape ``(N,)``.
+    """
+    return rng.normal( size=N, scale=brain.weight_std(input_size=N) )

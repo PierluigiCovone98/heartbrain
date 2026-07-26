@@ -1,6 +1,5 @@
 """Coupled-system module.
 
-TODO: expand when brain→heart is added.
 Orchestrates full simulations of the ``heart-brain`` coupled system over time. This
 sits one level above ``heartbrain/coupling``: where ``coupling`` provides the per-instant
 building blocks (how one signal is projected into the other at a single step),

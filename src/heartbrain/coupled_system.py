@@ -7,10 +7,14 @@ this module runs the loop — advancing both components for many steps and
 collecting their signals.
 
 The functions are named by ``coupling direction``, because the system is built up
-one direction at a time. ``run_heart_to_brain`` is the uni-directional case
-where the heart drives the network and receives nothing back. The reverse
-direction and the bidirectional case are separate problems, with their own loop
-structure, and will get their own functions when they are actually needed. 
+one direction at a time. ``run_heart_to_brain`` is the uni-directional case where
+the heart drives the network and receives nothing back; ``run_brain_to_heart`` is
+its mirror, where the chaotic network drives the heart. The two are separate
+functions rather than one parametrized loop because the loops genuinely differ:
+in the heart -> brain case the forcing term ``sigma`` is a fixed parameter (zero),
+while in the brain -> heart case it is dynamic — recomputed every step from the
+network's current state. The bidirectional case, where both channels are on at
+once, is a further separate problem and will get its own function when needed.
 
 Each function here is a pure orchestrator: it receives components already built
 and initialized by the caller and only advances them. It holds no state of its

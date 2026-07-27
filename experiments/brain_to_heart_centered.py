@@ -71,7 +71,7 @@ def main():
     coupled_rng = np.random.default_rng(SEED3)
     D_baseline = coupling.create_D_baseline(rng=coupled_rng, N=N)
 
-    # Here we insert the code that allows us to compute the (D * h) mean.
+
     # === First pass: measure the mean of the (unscaled) projection D·h ===
     # Run with the coupling OFF (k_bh=0): the network runs free and the returned
     # projection series is D·h. Its mean is the constant bias we want to isolate.
@@ -117,7 +117,7 @@ def main():
                               name="brain_to_heart_kbh_1p5",
                               subdir=SUBDIR,
                               start=2000, end=7000,
-                              brain_label="network projection (unit intensity)")
+                              brain_label="network projection (centered)")
 
 
 if __name__ == "__main__":

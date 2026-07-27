@@ -11,7 +11,7 @@ class Heart:
     The state is a pair ``(x,y)`` that evolves according to:
 
         dx/dt = y
-        dy/dt = mu * (1-x^2) * y - x + (k_bh * sigma)
+        dy/dt = mu * (1-x^2) * y - x + sigma
         
     Here:
         -   ``y`` is the velocity of  ``x``; 
@@ -19,10 +19,11 @@ class Heart:
         -   ``mu * (1 - x**2) * y`` is the nonlinear damping that 
             pumps small oscillations and damps large ones, producing 
             a stable limit cycle;
-        -   ``k_bh * sigma`` is the input coming from the brain.
+        -   ``sigma`` is the input coming from the brain, scaled by the
+            intensity value ``h_bh``.
 
     The state ``(current_x, current_y)`` evolves at every step. 
-    The configuration parameters ``mu`` and ``k_bh`` are fixed for the 
+    The configuration parameter ``mu`` is fixed for the 
     life of the object and are therefore not part of the state.
 
     Attributes
@@ -33,14 +34,13 @@ class Heart:
         Second state variable (the velocity of ``current_x``).
     mu : float
         Nonlinearity parameter; strictly positive.
-    k_bh : float
-        Brain-to-heart coupling strength; ``0.0`` means an autonomous heart.
+    sigma:
+        Signal coming from the brain, scaled by the intensity value ``k_bh``.
     """    
     
     def __init__(self, initial_x: float = 0.1,
                         initial_y: float = 0.0, 
-                        mu: float = 1.0,
-                        k_bh: float = 0.0) -> None:
+                        mu: float = 1.0) -> None:
         """Initialize a heart with a given state and configuration.
         
         Raises a ``ValueError`` if the initial state is the origin,
@@ -60,7 +60,6 @@ class Heart:
         self.current_x = initial_x
         self.current_y = initial_y
         self.mu = mu
-        self.k_bh = k_bh
 
 
     def step(self, sigma: float, dt: float) -> None:
@@ -69,7 +68,7 @@ class Heart:
         Parameters
         ----------
         sigma : float
-            Brain signal for this step.
+            Brain signal for this step, previously scaled by ``k_bh``.
         dt : float
             Step size.
 
@@ -130,7 +129,7 @@ class Heart:
         x, y : float
             Point at which to evaluate the field.
         sigma : float
-            Brain signal, held constant for this evaluation.
+            Brain signal, scaled by the ``k_bh`` intensity value.
 
         Returns
         -------
@@ -138,7 +137,7 @@ class Heart:
             The pair ``(dx/dt, dy/dt)`` at ``(x, y)``.
         """
         dx = y
-        dy = self.mu * (1 - x**2) * y - x + (self.k_bh * sigma)
+        dy = self.mu * (1 - x**2) * y - x + sigma
         
         return dx, dy
 

@@ -36,7 +36,7 @@ DT = 0.01
 
 # === coupled
 N_STEPS = 10000
-K_BH = 0.0
+K_BH = 1.5
 SUBDIR = "brain_to_heart"
 
 
@@ -82,7 +82,7 @@ def main():
 
     # === Look first: heart x(t) against what the network sends ===
     plotting.plot_time_series(heart_time_series, brain_time_series,
-                              name="brain_to_heart_kbh_0",
+                              name="brain_to_heart_kbh_1p5",
                               subdir=SUBDIR,
                               start=2000, end=7000,
                               brain_label="network projection (unit intensity)")

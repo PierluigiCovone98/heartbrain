@@ -114,7 +114,7 @@ def main():
 
     # === Look first: heart x(t) against what the network sends ===
     plotting.plot_time_series(heart_time_series, brain_time_series,
-                              name="brain_to_heart_kbh_1p5",
+                              name="brain_to_heart_centered_kbh_1p5",
                               subdir=SUBDIR,
                               start=2000, end=7000,
                               brain_label="network projection (centered)")

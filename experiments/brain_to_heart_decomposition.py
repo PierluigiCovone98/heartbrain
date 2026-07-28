@@ -126,6 +126,7 @@ def main():
         # ``forcing`` is the case "FULL"
         forcing = rnn.project_state_onto(direction=D_baseline)
 
+        # No controls are made on the correctness of the "FORCING" constant
         if FORCING == "chaos":
             forcing -= mean_projection
         elif FORCING == "bias":

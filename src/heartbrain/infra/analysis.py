@@ -494,3 +494,38 @@ def _correlation(a: np.ndarray, b: np.ndarray) -> float:
     if std_a < 1e-12 or std_b < 1e-12:
         return np.nan
     return float(np.mean(a_centered * b_centered) / (std_a * std_b))
+
+
+def extract_periods(phase: np.ndarray, target_phase: float) -> np.ndarray:
+    """Extract the sequence of cycle periods from a cyclic phase signal.
+
+    Finds every step where ``phase`` crosses ``target_phase`` (once per cycle)
+    and returns the distances between consecutive crossings — the period of each
+    cycle, in steps. Locating cycles through the phase, rather than through peaks,
+    keeps the measure robust when the amplitude varies.
+
+    The periods are integer step counts, so a signal whose true period is not a
+    whole number of steps carries a small spurious variability (±1 step) from the
+    grid; at zero forcing this floor is the null against which real variability is
+    judged.
+
+    Parameters
+    ----------
+    phase : np.ndarray
+        The instantaneous cyclic phase in ``[-π, π]`` (e.g. the heart phase from
+        ``instantaneous_phase``).
+    target_phase : float
+        The phase value whose crossings mark the start of each cycle, in radians.
+
+    Returns
+    -------
+    np.ndarray
+        The periods, one per completed cycle, in steps. Length is one less than
+        the number of crossings found.
+    """
+    # Re-center on the target so its crossings are where this goes negative ->
+    # positive; the complex form handles the +pi/-pi wrap cleanly.
+    shifted = np.angle(np.exp(1j * (phase - target_phase)))
+    crossings = np.where((shifted[:-1] < 0) & (shifted[1:] >= 0))[0] + 1
+
+    return np.diff(crossings).astype(float)

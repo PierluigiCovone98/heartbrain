@@ -529,3 +529,36 @@ def extract_periods(phase: np.ndarray, target_phase: float) -> np.ndarray:
     crossings = np.where((shifted[:-1] < 0) & (shifted[1:] >= 0))[0] + 1
 
     return np.diff(crossings).astype(float)
+
+
+def period_variability(periods: np.ndarray) -> tuple[float, float]:
+    """Summarize the variability of a sequence of cycle periods.
+
+    Reduces the periods to two complementary numbers, the way heart-rate
+    variability is usually reported: the standard deviation of the periods
+    (overall spread, the analogue of SDNN) and the root-mean-square of successive
+    differences (short-term, beat-to-beat variability, the analogue of RMSSD).
+    The two together distinguish a rhythm that drifts slowly over the run from one
+    that jitters from each cycle to the next.
+
+    Parameters
+    ----------
+    periods : np.ndarray
+        The cycle periods, e.g. from ``extract_periods``.
+
+    Returns
+    -------
+    tuple[float, float]
+        ``(std, rmssd)``: the standard deviation of the periods and the RMS of
+        successive differences, both in steps. Both are ``NaN`` if there are
+        fewer than two periods.
+    """
+    if len(periods) < 2:
+        return (np.nan, np.nan)
+
+    std = float(np.std(periods))
+
+    successive_differences = np.diff(periods)
+    rmssd = float(np.sqrt(np.mean(successive_differences**2)))
+
+    return (std, rmssd)

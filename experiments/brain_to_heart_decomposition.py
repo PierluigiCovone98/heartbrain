@@ -1,19 +1,34 @@
-"""Diagnostic: is the heart's collapse at large k_bh driven by the chaos or the bias?
+"""Decompose the brain -> heart forcing into its components, one at a time.
 
-The brain -> heart forcing sigma = k_bh * (D·h) has a non-zero mean, because the
-projection D·h sits around ~1 rather than 0. So the forcing is a constant bias
-plus a chaotic fluctuation. At large k_bh the heart's limit cycle collapses — but
-is that the chaos destroying the oscillation, or just the constant bias pushing
-the oscillator off its cycle?
+The forcing the network sends the heart, ``D·h``, splits into a constant part and a
+fluctuating part: ``D·h = mean + (D·h - mean)``. 
+These two act on different registers of the oscillator — the constant biases
+its equilibrium (and, if large enough, pushes it off the limit cycle entirely),
+while the fluctuation adds irregularity without destroying the rhythm.
+This experiment drives the heart with one piece at a time to see each effect
+in isolation.
 
-This isolates the two: it measures the mean of D·h in a first free run, then runs
-the coupled system forcing the heart with only the *centered* projection
-(D·h - mean) — the chaotic part with the constant bias removed. If the limit
-cycle survives, the collapse was the bias; if it collapses anyway, the chaos.
+The FORCING constant selects which piece:
+  - "full"  -> sigma = k_bh * (D·h)          the real signal (both parts)
+  - "chaos" -> sigma = k_bh * (D·h - mean)   fluctuation only, constant removed
+  - "bias"  -> sigma = k_bh * mean           constant only, fluctuation removed
 
-The bias is not an artifact — a non-zero baseline is a legitimate part of what the
-network sends (like a resting autonomic tone). Removing it here is a diagnostic
-move to attribute the effect, not a correction to the model.
+A first free run (coupling off) measures mean(D·h); this is valid for the driven
+run because, with the heart -> brain channel off, the network evolves identically
+regardless of k_bh. The three modes together against the full signal give a
+visual decomposition: what the whole forcing does, what the chaos alone does and 
+what the bias alone does.
+
+Neither part is an artifact. A non-zero baseline is a legitimate part of what the
+network sends (like a resting autonomic tone), and the fluctuation is the genuine
+chaotic drive. Splitting them here is an analytic move to attribute each effect,
+not a correction to the model.
+
+Biological note: the two effects (seems) to have distinct physiological analogues.
+A strong constant drive suppressing the pacemaker's own oscillation echoes
+overdrive suppression / loss of sinus rhythm; a fluctuating drive adding 
+beat-to-beat variability without abolishing the rhythm echoes heart-rate 
+variability (and, in the extreme, arrhythmia).
 """
 import numpy as np
 
@@ -38,8 +53,14 @@ DT = 0.01
 
 # === coupled
 N_STEPS = 10000
-K_BH = 1.5
+K_BH = 0.5
 SUBDIR = "brain_to_heart"
+
+# Which component of the forcing drives the heart:
+#   "full"    -> sigma = k_bh * (D·h)              [the real signal]
+#   "chaos"   -> sigma = k_bh * (D·h - mean)       [fluctuation only, bias removed]
+#   "bias"    -> sigma = k_bh * mean               [constant only, fluctuation removed]
+FORCING = "bias"
 
 
 def main():
@@ -90,11 +111,11 @@ def main():
     h.reset_state()
 
 
-    # === Second pass: coupled run with the CENTERED forcing ===
-    # sigma = k_bh * (D·h - mean): the heart receives only the fluctuating
-    # (chaotic) part of the projection, with the constant bias removed. If the
-    # heart's limit cycle survives this, the collapse seen at large k_bh was
-    # driven by the bias; if it collapses anyway, by the chaos.
+    # === Second pass: coupled run with the selected forcing component ===
+    # forcing starts as the full projection D·h; the FORCING mode then reduces it
+    # to the chaos part (minus mean) or the bias part (the mean alone). sigma is
+    # that component scaled by k_bh. What is recorded as the network series is the
+    # forcing component actually driving the heart..
     heart_time_series = np.zeros(N_STEPS)
     brain_time_series = np.zeros(N_STEPS)
 
@@ -102,11 +123,16 @@ def main():
         heart_state = h.get_state()
         heart_time_series[t] = heart_state[0]
 
-        projection_t = rnn.project_state_onto(direction=D_baseline)
-        centered_projection = projection_t - mean_projection
-        brain_time_series[t] = centered_projection
+        # ``forcing`` is the case "FULL"
+        forcing = rnn.project_state_onto(direction=D_baseline)
 
-        sigma = K_BH * centered_projection    
+        if FORCING == "chaos":
+            forcing -= mean_projection
+        elif FORCING == "bias":
+            forcing = mean_projection
+
+        sigma = K_BH * forcing
+        brain_time_series[t] = forcing
 
         h.step(sigma=sigma, dt=DT)
         rnn.step(x=x)
@@ -114,10 +140,10 @@ def main():
 
     # === Look first: heart x(t) against what the network sends ===
     plotting.plot_time_series(heart_time_series, brain_time_series,
-                              name="brain_to_heart_centered_kbh_1p5",
+                              name=f"brain_to_heart_{FORCING}_kbh_05",
                               subdir=SUBDIR,
                               start=2000, end=7000,
-                              brain_label="network projection (centered)")
+                              brain_label=f"network projection ({FORCING})")
 
 
 if __name__ == "__main__":

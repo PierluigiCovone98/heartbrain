@@ -38,8 +38,8 @@ DT = 0.01
 
 # === coupled
 N_STEPS = 10000
-K_HB = 0.3
-K_BH = 0.5
+K_HB = 1.0
+K_BH = 1.0
 SUBDIR = "bidirectional"
 
 
@@ -96,7 +96,7 @@ def main():
                                top_values=heart_series[window],
                                middle_values=brain_projection_series[window],
                                bottom_values=brain_signal_series[window],
-                               name="bidirectional_khb_03_kbh_05",
+                               name="bidirectional_khb_1_kbh_1",
                                subdir=SUBDIR,
                                x_label="step",
                                top_label="heart x(t)",

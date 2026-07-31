@@ -376,3 +376,88 @@ def plot_scatter(x_values,
     plt.close(fig)
 
     return path
+
+
+def plot_three_panels(x_values,
+                      top_values,
+                      middle_values,
+                      bottom_values,
+                      name: str,
+                      subdir: str,
+                      x_label: str = "x",
+                      top_label: str = "top",
+                      middle_label: str = "middle",
+                      bottom_label: str = "bottom",
+                      top_color: str = "crimson",
+                      middle_color: str = "seagreen",
+                      bottom_color: str = "steelblue",
+                      marker: str = "") -> Path:
+    """Plot three quantities against a shared x-axis, as three stacked panels.
+
+    The three-panel counterpart of ``plot_two_panels``: the panels share the
+    x-axis but keep independent y-axes, so three quantities on different scales
+    can be compared point by point. It assumes nothing about what the axes mean —
+    the caller labels them.
+
+    Parameters
+    ----------
+    x_values : array-like
+        The shared horizontal coordinates.
+    top_values, middle_values, bottom_values : array-like
+        The quantities for the three panels. Same length as ``x_values``.
+    name : str
+        Bare file name (no directory, no extension). Saved to
+        ``output/<subdir>/<name>.png``.
+    subdir : str
+        Output subdirectory under ``output/``.
+    x_label : str
+        Shared x-axis label.
+    top_label, middle_label, bottom_label : str
+        Y-axis labels for the three panels.
+    top_color, middle_color, bottom_color : str
+        Line/marker colors.
+    marker : str
+        Marker style.
+
+    Returns
+    -------
+    Path
+        The path of the saved figure.
+
+    Raises
+    ------
+    ValueError
+        If the arrays have different lengths.
+    """
+    if not (len(x_values) == len(top_values) == len(middle_values) == len(bottom_values)):
+        raise ValueError(
+            f"Length mismatch: x={len(x_values)}, top={len(top_values)}, "
+            f"middle={len(middle_values)}, bottom={len(bottom_values)}."
+        )
+
+    fig, (ax_top, ax_middle, ax_bottom) = plt.subplots(3, 1, sharex=True, figsize=(10, 8))
+
+    ax_top.plot(x_values, top_values, color=top_color, marker=marker, markersize=4, linewidth=1.0)
+    ax_top.set_ylabel(top_label)
+    ax_top.grid(True, alpha=0.3)
+
+    ax_middle.plot(x_values, middle_values, color=middle_color, marker=marker, markersize=4, linewidth=1.0)
+    ax_middle.set_ylabel(middle_label)
+    ax_middle.grid(True, alpha=0.3)
+
+    ax_bottom.plot(x_values, bottom_values, color=bottom_color, marker=marker, markersize=4, linewidth=1.0)
+    ax_bottom.set_ylabel(bottom_label)
+    ax_bottom.set_xlabel(x_label)
+    ax_bottom.grid(True, alpha=0.3)
+
+    fig.suptitle(name)
+    fig.tight_layout()
+
+    out_dir = _paths.output_subdir(subdir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / (name + _EXTENSION)
+
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+    return path

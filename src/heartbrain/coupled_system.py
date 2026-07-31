@@ -185,3 +185,84 @@ def run_brain_to_heart(rnn: brain.VanillaRNN,
         rnn.step(x=x)
 
     return (heart_time_series, brain_time_series)
+
+
+def run_coupled(rnn: brain.VanillaRNN,
+                oscillator: heart.Heart,
+                x: np.ndarray,
+                K: np.ndarray,
+                K_baseline_x: np.ndarray,
+                D_baseline: np.ndarray,
+                k_bh: float,
+                n_steps: int,
+                dt: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Run one bidirectional heart <-> brain simulation, returning three signals.
+
+    Both channels are on at once: the heart perturbs the network bias (heart ->
+    brain, via ``K``) and the network forces the heart (brain -> heart, via
+    ``D_baseline`` scaled by ``k_bh``). Both couplings are computed from the
+    start-of-step state before either component advances, so neither leads the
+    other (simultaneous coupling).
+
+    The function is a pure orchestrator: it does not build or reset its
+    components. The caller passes an ``rnn`` and an ``oscillator`` already in
+    their intended initial state and owns everything that must vary between runs.
+
+    Parameters
+    ----------
+    rnn : brain.VanillaRNN
+        The network, already built and gain-scaled, in its initial state.
+    oscillator : heart.Heart
+        The heart oscillator, in its initial state.
+    x : np.ndarray
+        The fixed input vector driving the network, shape ``(input_size,)``.
+    K : np.ndarray
+        The scaled heart -> brain coupling matrix ``k_hb * K_baseline``, shape
+        ``(N, 2)``. Scaled by the caller, as in ``run_heart_to_brain``.
+    K_baseline_x : np.ndarray
+        The heart -> brain observation direction, shape ``(N,)``, onto which the
+        network is projected to record ``s(t)``.
+    D_baseline : np.ndarray
+        The unscaled brain -> heart projection direction, shape ``(N,)``. The
+        network state projected onto it, scaled by ``k_bh``, forces the heart.
+    k_bh : float
+        Brain -> heart coupling strength.
+    n_steps : int
+        Number of simulation steps.
+    dt : float
+        Heart integration step size.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray, np.ndarray]
+        ``(heart_series, brain_signal_series, brain_projection_series)``: the
+        heart signal ``x(t)``, the network projected onto ``K_baseline_x`` (the
+        signal studied throughout, ``s(t)``), and the network projected onto the
+        unscaled ``D_baseline`` (what the network sends the heart). Each of length
+        ``n_steps``.
+    """
+    heart_series = np.zeros(n_steps)
+    brain_signal_series = np.zeros(n_steps)
+    brain_projection_series = np.zeros(n_steps)
+
+    for t in range(n_steps):
+
+        # Record start-of-step state.
+        heart_state = oscillator.get_state()
+
+        # This way we loose last state of both, but that's ok.
+        heart_series[t] = heart_state[0]
+        brain_signal_series[t] = rnn.project_state_onto(direction=K_baseline_x)
+        brain_projection_series[t] = rnn.project_state_onto(direction=D_baseline)
+
+        # Both couplings from the start-of-step state: heart -> brain, then
+        # brain -> heart.
+        perturbation = coupling.heart_to_brain_bias_perturbation(K=K, heart_state=heart_state)
+        sigma = k_bh * brain_projection_series[t]
+
+        # Advance both with the frozen inputs.
+        rnn.apply_bias_perturbation(perturbation)
+        rnn.step(x=x)
+        oscillator.step(sigma=sigma, dt=dt)
+
+    return (heart_series, brain_signal_series, brain_projection_series)

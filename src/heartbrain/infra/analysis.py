@@ -620,3 +620,49 @@ def state_response_dependence(states: np.ndarray,
         return float("nan")
  
     return float(np.corrcoef(sd, rd)[0, 1])
+
+
+def state_response_dependence_null(states: np.ndarray,
+                                   responses: np.ndarray,
+                                   rng: np.random.Generator,
+                                   n_shuffles: int = 100) -> float:
+    """Null control for ``state_response_dependence`` by shuffling the pairing.
+
+    Breaks the association between each state and its response by permuting the
+    responses, then recomputes the dependence. Averaged over ``n_shuffles``
+    permutations, this is the correlation expected when state and response are
+    unrelated — the floor against which the true value is judged. A true value
+    near this floor means the observed dependence is indistinguishable from
+    chance.
+
+    Parameters
+    ----------
+    states : np.ndarray
+        Pre-probe states, shape ``(n_probes, state_dim)``.
+    responses : np.ndarray
+        Responses, shape ``(n_probes, response_len)``.
+    rng : np.random.Generator
+        Source of randomness for the permutations.
+    n_shuffles : int
+        Number of permutations to average over.
+
+    Returns
+    -------
+    float
+        Mean dependence over the shuffled pairings. ``NaN`` if the base measure
+        is undefined (fewer than three probes).
+    """
+    states = np.asarray(states)
+    responses = np.asarray(responses)
+
+    if len(states) < 3:
+        return float("nan")
+
+    null_values = []
+    for _ in range(n_shuffles):
+        permutation = rng.permutation(len(responses))
+        shuffled = state_response_dependence(states=states,
+                                             responses=responses[permutation])
+        null_values.append(shuffled)
+
+    return float(np.mean(null_values))

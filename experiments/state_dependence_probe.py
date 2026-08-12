@@ -54,7 +54,7 @@ K_BH = 1.0
 WARMUP_STEPS = 2000
 
 # === probe
-TARGET_PHASE = 1.5       # a fast/chaotic phase (valley of B at (1,1))
+TARGET_PHASE = 1.2      # a fast/chaotic phase (valley of B at (1,1))
 IMPULSE_DX = 0.5         # fixed perturbation added to x during the impulse
 IMPULSE_LEN = 5          # impulse duration in steps
 RESPONSE_LEN = 300       # response window after the impulse onset (~half a cycle)

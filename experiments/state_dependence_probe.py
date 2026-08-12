@@ -164,6 +164,14 @@ def main():
     print("  ~1 -> response follows the state (transient state-dependence)")    # Log
     print("  ~0 -> response does not follow the state (chaos)")    # Log
 
+    null_rng = np.random.default_rng(99)
+    dependence_null = analysis.state_response_dependence_null(states=states,
+                                                              responses=responses,
+                                                              rng=null_rng)
+    print(f"state_response_dependence (null) = {dependence_null:.4f}")    # Log
+    print(f"  true={dependence:.4f} vs null={dependence_null:.4f}: "
+          f"{'above floor' if dependence > dependence_null + 0.05 else 'indistinguishable from chance'}")    # Log
+
 
 if __name__ == "__main__":
     main()

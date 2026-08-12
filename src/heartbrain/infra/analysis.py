@@ -6,6 +6,7 @@ run on the data it produces.
 """
 import numpy as np
 from scipy.signal import butter, filtfilt, hilbert
+from itertools import combinations
 
 
 # Filter design constants (see module discussion for the rationale).
@@ -562,3 +563,60 @@ def period_variability(periods: np.ndarray) -> tuple[float, float]:
     rmssd = float(np.sqrt(np.mean(successive_differences**2)))
 
     return (std, rmssd)
+
+
+def state_response_dependence(states: np.ndarray,
+                              responses: np.ndarray) -> float:
+    """Measure whether responses are predictable from the pre-probe state.
+ 
+    Given a set of probes, each with a pre-probe state and the response that
+    followed, this asks: do similar states produce similar responses? It compares
+    every pair of probes on two distances — how far apart their states are, and
+    how far apart their responses are — and returns the correlation between the
+    two across all pairs.
+ 
+    A high correlation means near states gave near responses: the response is
+    structured by the state (state-dependence). A correlation near zero means the
+    response does not follow the state — near states gave arbitrary responses,
+    the signature of chaos rather than memory. This is the distinction the measure
+    exists to draw: "responses vary" is satisfied by chaos alone, but "responses
+    are predictable from the state" is not.
+ 
+    Parameters
+    ----------
+    states : np.ndarray
+        One pre-probe state per probe, shape ``(n_probes, state_dim)``.
+    responses : np.ndarray
+        One response per probe, shape ``(n_probes, response_len)``, aligned with
+        ``states``.
+ 
+    Returns
+    -------
+    float
+        Pearson correlation between pairwise state distances and pairwise
+        response distances, over all probe pairs. ``NaN`` if there are fewer than
+        three probes, or if either set of distances has no spread.
+    """
+    states = np.asarray(states)
+    responses = np.asarray(responses)
+ 
+    if len(states) != len(responses):
+        raise ValueError(
+            f"Mismatch: {len(states)} states, {len(responses)} responses."
+        )
+    if len(states) < 3:
+        return float("nan")
+ 
+    state_distances = []
+    response_distances = []
+    for i, j in combinations(range(len(states)), 2):
+        state_distances.append(np.linalg.norm(states[i] - states[j]))
+        response_distances.append(np.linalg.norm(responses[i] - responses[j]))
+ 
+    sd = np.asarray(state_distances)
+    rd = np.asarray(response_distances)
+ 
+    if np.std(sd) == 0 or np.std(rd) == 0:
+        return float("nan")
+ 
+    return float(np.corrcoef(sd, rd)[0, 1])

@@ -1,34 +1,37 @@
-"""Is the response to a fixed probe predictable from the internal state?
+"""Does the pre-probe state still predict the response when sampled further back?
 
-Once the loop is closed, the coupled system is chaotic: the same input, given at
-different moments, gives different responses. But "responses vary" is satisfied by
-chaos alone. The sharper question is whether the response is *predictable from the
-state* — do near states give near responses (state-dependence, a transient memory)
-or arbitrary ones (chaos)?
+The earlier probe (``state_dependence_probe``) sampled the network state at the
+trigger, immediately before the impulse, and asked whether near states give near
+responses. It answered a narrower question than intended: a correlation at lag
+zero says *a state matters*, which any nonlinear system satisfies — it does not
+say the state *carries the past*. Chaos and memory are indistinguishable there.
 
-The probe is a fixed impulse on x (same magnitude, same duration), fired many
-times at the *same heart phase*, chosen in a fast/chaotic region of the cycle
-(where reproducibility B is low — a plateau would give a trivially repeatable
-response). Firing at one fixed phase neutralizes the phase as an explanation: any
-residual dependence of the response on the state is then beyond the phase, the
-candidate for memory. For each probe the pre-probe network state h and the
-response (s(t) over the following steps) are recorded; the measure correlates
-pairwise state distances with pairwise response distances across probes.
+Sampling the state further back separates them. If the response only depends on
+where the system happens to be, then knowing h(t-tau) helps only insofar as
+h(t-tau) predicts h(t) — and at g=2.5 that predictive power decays. The curve
+falls to zero. If something persists across tau — a slow variable that integrated
+the history and still modulates processing — the curve keeps a tail. The height at
+tau=0 says "there is a state"; the *shape* of the curve says "the state remembers".
 
-The loop is written out here rather than using run_coupled, because the probe must
-inject an impulse mid-run and the pre-probe state must be captured at the trigger
-— neither of which the closed orchestrator allows.
+The probes, the impulses and the responses are identical to the earlier
+experiment: one run yields the whole curve, since only the sampled state changes
+with the lag while the responses stay fixed. This makes the points mutually
+comparable by construction — no across-run variability to control for.
 
-Read in absolute: a correlation near 1 means the response follows the state
-(transient state-dependence); near 0 means the response does not follow the state
-(chaos). No persistent memory can live here anyway — D and K are fixed, there is
-no slow state — so this probes only the transient, state-carried dependence, as a
-baseline for when a memory substrate is later added.
+The heart is the only slow structure here, so the state at t-tau is sampled at a
+cardiac phase that shifts with tau. The curve is therefore expected to oscillate
+with the cardiac cycle rather than fall smoothly; the spacing of its maxima is the
+cardiac period, and the damping of the oscillation is the accumulated phase
+jitter. Both are read off the curve rather than measured separately.
+
+Read in absolute, against the null at every lag. Pre-registered expectation
+(written before running): the curve decays to zero, and it oscillates.
 """
 import numpy as np
+from collections import deque
 
 from heartbrain import heart, coupling
-from heartbrain.infra import analysis
+from heartbrain.infra import analysis, plotting
 from heartbrain.infra.persistence import networks, experiments
 
 
@@ -59,6 +62,15 @@ IMPULSE_DX = 0.5         # fixed perturbation added to x during the impulse
 IMPULSE_LEN = 5          # impulse duration in steps
 RESPONSE_LEN = 300       # response window after the impulse onset (~half a cycle)
 MIN_GAP = 1500           # minimum steps between probes (different states)
+
+# === lags
+# How far back the pre-probe state is sampled. Capped below MIN_GAP: beyond it
+# the sampled state would fall inside the tail of the previous probe, and would
+# no longer be a spontaneous state.
+LAGS = list(range(0, 1401, 50))
+MAX_LAG = max(LAGS)
+
+NULL_SEED = 99
 
 
 def main():
@@ -95,12 +107,14 @@ def main():
         oscillator.step(sigma=K_BH * projection, dt=DT)
 
 
-    # === Probed run: fire a fixed impulse at TARGET_PHASE, record state + response ===
-    # Phase proxy atan2(y, x) is available every step (the Hilbert phase is only
-    # known post hoc). A probe fires when this proxy crosses TARGET_PHASE and at
-    # least MIN_GAP steps have passed since the last fire, with room left for the
-    # full response.
-    states = []
+    # === Probed run: fire a fixed impulse at TARGET_PHASE, record states + response ===
+    # Same trigger rule as state_dependence_probe: an upward crossing of the phase
+    # proxy atan2(y, x), at least MIN_GAP steps after the last fire, with room left
+    # for the full response. What changes here is only *which* pre-probe states are
+    # kept: one per lag, pulled from a rolling window, instead of the trigger state
+    # alone.
+    state_history = deque(maxlen=MAX_LAG + 1)    # newest last; [-1 - lag] is lag steps back
+    states_by_lag = {lag: [] for lag in LAGS}
     responses = []
 
     last_fire = -MIN_GAP
@@ -110,6 +124,8 @@ def main():
     probe_onset = None
     response_buffer = []
 
+    skipped_probes = 0
+
     for t in range(N_STEPS):
         heart_x, heart_y = oscillator.get_state()
 
@@ -117,6 +133,10 @@ def main():
         shifted = np.angle(np.exp(1j * (phase_proxy - TARGET_PHASE)))
 
         brain_signal = rnn.project_state_onto(direction=K_baseline_x)
+
+        # The rolling window must already hold the current state when the trigger
+        # is evaluated, so that state_history[-1] is the lag-0 state.
+        state_history.append(rnn.state.copy())
 
         # Collect the response of an active probe.
         if in_probe:
@@ -130,14 +150,19 @@ def main():
         if (not in_probe) and previous_shift is not None:
             crossed = (previous_shift < 0) and (shifted >= 0)
             if crossed and (t - last_fire) >= MIN_GAP and (t + RESPONSE_LEN < N_STEPS):
-                in_probe = True
-                probe_onset = t
-                last_fire = t
-                response_buffer = []
-                # Pre-probe state: the network state at the trigger, before the
-                # impulse-affected step advances it. Copied, since ``state`` is the
-                # live array and the network keeps evolving.
-                states.append(rnn.state.copy())
+                if len(state_history) > MAX_LAG:
+                    in_probe = True
+                    probe_onset = t
+                    last_fire = t
+                    response_buffer = []
+                    # Pre-probe states, one per lag. Copied at append time, since
+                    # ``state`` is the live array and the network keeps evolving.
+                    for lag in LAGS:
+                        states_by_lag[lag].append(state_history[-1 - lag])
+                else:
+                    # Not enough history yet (early probes after warmup): skipping
+                    # keeps the number of states equal to the number of responses.
+                    skipped_probes += 1
 
         previous_shift = shifted
 
@@ -152,25 +177,55 @@ def main():
         rnn.step(x=driving_x)
         oscillator.step(sigma=K_BH * projection, dt=DT)
 
-    states = np.array(states)
     responses = np.array(responses)
-    print(f"probes fired: {len(states)} (state_dim={states.shape[1]}, response_len={responses.shape[1]})")    # Log
+    n_probes = len(responses)
+    print(f"probes fired: {n_probes} (skipped for short history: {skipped_probes}, "
+          f"response_len={responses.shape[1]}, pairs={n_probes * (n_probes - 1) // 2})")    # Log
 
 
-    # === Measure: is the response predictable from the pre-probe state? ===
-    dependence = analysis.state_response_dependence(states=states, responses=responses)
+    # === Measure: how far back does the state still predict the response? ===
+    # One table per lag: pairwise state distances against pairwise response
+    # distances, correlated. The response column is identical at every lag — only
+    # the state column moves — so any change along the curve is attributable to
+    # the lag alone.
     print(f"\n(k_hb={K_HB}, k_bh={K_BH}, target_phase={TARGET_PHASE})")    # Log
-    print(f"state_response_dependence = {dependence:.4f}")    # Log
-    print("  ~1 -> response follows the state (transient state-dependence)")    # Log
-    print("  ~0 -> response does not follow the state (chaos)")    # Log
+    print(f"{'lag':>6}  {'dependence':>11}  {'null':>8}")    # Log
 
-    null_rng = np.random.default_rng(99)
-    dependence_null = analysis.state_response_dependence_null(states=states,
-                                                              responses=responses,
-                                                              rng=null_rng)
-    print(f"state_response_dependence (null) = {dependence_null:.4f}")    # Log
-    print(f"  true={dependence:.4f} vs null={dependence_null:.4f}: "
-          f"{'above floor' if dependence > dependence_null + 0.05 else 'indistinguishable from chance'}")    # Log
+    dependences = []
+    nulls = []
+
+    for lag in LAGS:
+        states_lag = np.array(states_by_lag[lag])[:n_probes]
+
+        dependence = analysis.state_response_dependence(states=states_lag,
+                                                        responses=responses)
+        null_rng = np.random.default_rng(NULL_SEED)    # fixed: same floor at every lag
+        dependence_null = analysis.state_response_dependence_null(states=states_lag,
+                                                                  responses=responses,
+                                                                  rng=null_rng)
+        dependences.append(dependence)
+        nulls.append(dependence_null)
+        print(f"{lag:>6}  {dependence:>+11.4f}  {dependence_null:>+8.4f}")    # Log
+
+    dependences = np.array(dependences)
+    print(f"\nlag 0 = {dependences[0]:+.4f} (baseline: 0.134 at phase 1.5)")    # Log
+    print(f"max = {dependences.max():+.4f} at lag {LAGS[int(dependences.argmax())]}")    # Log
+    print(f"min = {dependences.min():+.4f} at lag {LAGS[int(dependences.argmin())]}")    # Log
+
+    plotting.plot_curve(x_values=LAGS,
+                        y_values=dependences,
+                        name="state_dependence_vs_lag",
+                        subdir="lag",
+                        x_label="lag (steps before the probe)",
+                        y_label="state-response dependence")
+
+    plotting.plot_curve(x_values=LAGS,
+                        y_values=nulls,
+                        name="state_dependence_vs_lag_null",
+                        subdir="lag",
+                        x_label="lag (steps before the probe)",
+                        y_label="null floor",
+                        color="grey")
 
 
 if __name__ == "__main__":

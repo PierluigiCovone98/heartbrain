@@ -666,3 +666,32 @@ def state_response_dependence_null(states: np.ndarray,
         null_values.append(shuffled)
 
     return float(np.mean(null_values))
+
+
+def plv_over_windows(heart_series, brain_series, cutoff_period,
+                     transient_steps, border_steps, window_length):
+    """Phase locking value computed on consecutive windows, not over the whole run.
+
+    ``measure_plv`` collapses the run into a single average, which hides whether
+    the locking is rigid or fluctuating. Same chain, same trimming: only the final
+    averaging is split into windows, so the returned values are comparable to the
+    global one.
+
+    Returns one PLV per full window; a trailing partial window is dropped.
+    """
+    heart_phase = instantaneous_phase(heart_series)
+    brain_slow = low_pass_filter(signal=brain_series, cutoff_period=cutoff_period)
+    brain_phase = instantaneous_phase(brain_slow)
+
+    n_start = transient_steps + border_steps
+    heart_phase_valid = discard_borders(heart_phase, n_start=n_start, n_end=border_steps)
+    brain_phase_valid = discard_borders(brain_phase, n_start=n_start, n_end=border_steps)
+
+    n_windows = len(heart_phase_valid) // window_length
+    return np.array([
+        phase_locking_value(
+            heart_phase_valid[i * window_length:(i + 1) * window_length],
+            brain_phase_valid[i * window_length:(i + 1) * window_length],
+        )
+        for i in range(n_windows)
+    ])

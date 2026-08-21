@@ -44,7 +44,7 @@ SEED3 = 77
 
 # === brain
 G = 2.5
-
+m
 # === heart
 DT = 0.01
 
@@ -52,7 +52,7 @@ DT = 0.01
 N_STEPS = 90000
 K_HB = 1.0
 K_BH = 1.0
-SUBDIR = "coupled"
+SUBDIR = "coupled_plv"
 
 # === brain signal filtering (unchanged from the monodirectional chain)
 CUTOFF_PERIOD = 100

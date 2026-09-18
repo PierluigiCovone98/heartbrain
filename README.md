@@ -133,8 +133,8 @@ Paused since August 2026. The three invariants above are verified. With fixed we
 
 ### Open
 
-- **Memory in the fixed-weight substrate.** At lag 0 the response depends only negligibly on the prior state (~2% of variance); the behaviour at longer lags is unresolved.
-- **A causal modulator.** The invariants rely on a non-causal Hilbert transform, while a learning rule needs a coherence signal computed online from past data. At the bidirectional operating point (1, 1) the PLV is saturated (0.9938 ± 0.0003), so it cannot serve.
+- **Memory in the fixed-weight substrate.**
+- **A causal modulator.** 
 - **A top-down view.** The measures were built bottom-up, tied to specific versions of the system. Organising principles that transfer across variants are missing.
 
 ### Next

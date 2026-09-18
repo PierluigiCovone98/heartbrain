@@ -25,3 +25,6 @@ output/
 
 # Different types of data
 data/
+
+# Notes
+.notes/

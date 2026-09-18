@@ -20,7 +20,7 @@ class Heart:
             pumps small oscillations and damps large ones, producing 
             a stable limit cycle;
         -   ``sigma`` is the input coming from the brain, scaled by the
-            intensity value ``h_bh``.
+            intensity value ``k_bh``.
 
     The state ``(current_x, current_y)`` evolves at every step. 
     The configuration parameter ``mu`` is fixed for the 

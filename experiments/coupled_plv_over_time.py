@@ -44,7 +44,7 @@ SEED3 = 77
 
 # === brain
 G = 2.5
-m
+
 # === heart
 DT = 0.01
 
